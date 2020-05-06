@@ -2,14 +2,18 @@ import csv
 import json
 import os
 import re
+import urllib3
 from random import random
-
-import requests
+from urllib.parse import urlparse
 
 
 def is_present(regex, content):
     match = re.search(re.compile(regex, flags=re.IGNORECASE), content)
     return match.group(1) or ""
+
+
+def to_json(files):
+    return json.dumps(files, indent=4)
 
 
 class M3uParser:
@@ -20,12 +24,21 @@ class M3uParser:
         self.content = ""
 
     # Download the file from the given url
-    def download_m3u(self, url):
-        try:
-            self.content = requests.get(url).text
-        except:
-            print("Cannot parse anything from the url!!!")
-            exit()
+    def parse_m3u(self, url):
+        if urlparse(url).scheme != '' or 'www' in url:
+            try:
+                with urllib3.PoolManager() as http:
+                    self.content = http.request('GET', url).data.decode('utf-8')
+            except:
+                print("Cannot read anything from the url!!!")
+                exit()
+        else:
+            try:
+                with open(url) as fp:
+                    self.content = fp.read()
+            except FileNotFoundError:
+                print("File doesn't exist!!!")
+                exit()
         self.read_m3u()
 
     # Read the file from the given path
@@ -48,20 +61,19 @@ class M3uParser:
                 self.manage_line(n)
 
     def manage_line(self, n):
-        lineInfo = self.lines[n]
-        lineLink = self.lines[n + 1]
-        if lineInfo != "#EXTM3U":
+        line_info = self.lines[n]
+        line_link = self.lines[n + 1]
+        if line_info != "#EXTM3U":
             try:
-                name = is_present(r"tvg-name=\"(.*?)\"", lineInfo)
-                tid = is_present(r"tvg-id=\"(.*?)\"", lineInfo)
-                logo = is_present(r"tvg-logo=\"(.*?)\"", lineInfo)
-                group = is_present(r"group-title=\"(.*?)\"", lineInfo)
-                title = is_present("[,](?!.*[,])(.*?)$", lineInfo)
-                country = is_present(r"tvg-country=\"(.*?)\"", lineInfo)
-                language = is_present(r"tvg-language=\"(.*?)\"", lineInfo)
-                # ~ print(name+"||"+id+"||"+logo+"||"+group+"||"+title)
+                name = is_present(r"tvg-name=\"(.*?)\"", line_info)
+                tid = is_present(r"tvg-id=\"(.*?)\"", line_info)
+                logo = is_present(r"tvg-logo=\"(.*?)\"", line_info)
+                group = is_present(r"group-title=\"(.*?)\"", line_info)
+                title = is_present("[,](?!.*[,])(.*?)$", line_info)
+                country = is_present(r"tvg-country=\"(.*?)\"", line_info)
+                language = is_present(r"tvg-language=\"(.*?)\"", line_info)
 
-                test = {
+                self.files.append({
                     "title": title,
                     "tvg-name": name,
                     "tvg-id": tid,
@@ -69,69 +81,63 @@ class M3uParser:
                     "tvg-group": group,
                     "tvg-country": country,
                     "tvg-language": language,
-                    "titleFile": os.path.basename(lineLink),
-                    "link": lineLink
-                }
-                self.files.append(test)
+                    "title-file": os.path.basename(line_link),
+                    "link": line_link
+                })
             except AttributeError:
                 pass
 
-    # Remove files with a certain file extension
-    def remove_files_extension(self, extension):
-        matches = [extension.lower(), extension.upper()]
-        self.files = list(filter(lambda file: all([ext not in file["titleFile"] for ext in matches]), self.files))
-        # Select only files with a certain file extension
-
-    def retrieve_files_extension(self, extension):
-        # Use the extension as list
-        if not isinstance(extension, list):
-            extension = [extension]
-        if not len(extension):
-            print("No filter in based on extensions")
+    def filter_by(self, key, filters, jsonify=False, retrieve=True):
+        if not filters:
+            print("Filter word/s missing!!!")
             return
-        new = []
-        # Iterate over all files and extensions
-        for file in self.files:
-            for ext in extension:
-                matches = [ext.upper(), ext.lower()]
-                if any([ext in file["titleFile"] for ext in matches]):
-                    # Allowed extension - go to next file
-                    new.append(file)
-                    break
-        print("Filter in based on extension: [" + ",".join(extension) + "]")
-        self.files = new
+        if not isinstance(filters, list):
+            filters = [filters]
+        if retrieve:
+            files = list(filter(
+                lambda file: any([re.search(re.compile(fltr, flags=re.IGNORECASE), file[key]) for fltr in filters]),
+                self.files))
+        else:
+            files = list(filter(
+                lambda file: any([not re.search(re.compile(fltr, flags=re.IGNORECASE), file[key]) for fltr in filters]),
+                self.files))
+        if jsonify:
+            files = to_json(files)
+        return files
+
+    # Remove files with a certain file extension
+    def remove_by_extension(self, extension, jsonify=False):
+        files = self.filter_by('title-file', extension, jsonify, retrieve=False)
+        return files
+
+    # Select only files with a certain file extension
+    def retrieve_by_extension(self, extension, jsonify=False):
+        files = self.filter_by('title-file', extension, jsonify, retrieve=True)
+        return files
 
     # Remove files that contains a certain filterWord
-    def remove_files_grpname(self, filter_word):
-        self.files = list(filter(
-            lambda file: filter_word.lower() not in file["tvg-group"] or filter_word.upper() not in file[
-                "tvg-group"], self.files))
+    def remove_by_grpname(self, filter_word, jsonify=False):
+        files = self.filter_by('tvg-group', filter_word, jsonify, retrieve=False)
+        return files
 
     # Select only files that contains a certain filterWord
-    def retrieve_files_grpname(self, filter_word):
-        # Use the filter words as list
-        if not isinstance(filter_word, list):
-            filter_word = [filter_word]
-        if not len(filter_word):
-            print("No filter in based on groups")
-            return
-        new = []
-        for file in self.files:
-            for fw in filter_word:
-                if fw in file["tvg-group"]:
-                    # Allowed extension - go to next file
-                    new.append(file)
-                    break
-        print("Filter in based on groups: [" + ",".join(filter_word) + "]")
-        self.files = new
+    def retrieve_by_grpname(self, filter_word, jsonify=False):
+        files = self.filter_by('title-file', filter_word, jsonify, retrieve=True)
+        return files
+
+    def sort_by(self, key, jsonify=False, asc=True):
+        files = sorted(self.files, key=lambda file: file[key], reverse=not asc)
+        if jsonify:
+            files = to_json(files)
+        return files
 
     # Getter for the list
-    def get_list(self):
+    def get_json(self):
         return json.dumps(self.files, indent=4)
 
     # Return the info assciated to a certain file name
     def get_custom_title(self, original_name):
-        result = list(filter(lambda file: file["titleFile"] == original_name, self.files))
+        result = list(filter(lambda file: file["title-file"] == original_name, self.files))
         if len(result):
             return result
         else:
@@ -181,7 +187,13 @@ def get_absolute_path(path):
 
 if __name__ == "__main__":
     myFile = M3uParser()
-    url = "https://iptv-org.github.io/iptv/categories/health.m3u"
-    myFile.download_m3u(url)
+    url = "https://iptv-org.github.io/iptv/index.country.m3u"
+    myFile.parse_m3u(url)
+    files1 = myFile.filter_by('title-file', 'flv')
+    files2 = myFile.retrieve_by_extension('flv')
+    print(files1 == files2)
+    files3 = myFile.sort_by('tvg-group')
+    print(to_json(files3))
     # myFile.remove_files_extension('m3u8')
-    print(myFile.get_list())
+    # myFile.remove_files_grpname('Zimbabwe')
+    # print(myFile.get_json())
