@@ -11,4 +11,4 @@ pylint = "*"
 pycountry = "*"
 
 [requires]
-python_version = "3.0"
+python_version = "3.8.2"
