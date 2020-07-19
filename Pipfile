@@ -9,6 +9,9 @@ pylint = "*"
 
 [packages]
 pycountry = "*"
+requests = "*"
+aiohttp = "*"
+asyncio = "*"
 
 [requires]
-python_version = "3.8.2"
+python_version = "3.6"
