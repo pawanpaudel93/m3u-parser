@@ -1,4 +1,7 @@
+import asyncio
+import csv
 import re
+
 
 # check if the regex is present or not
 def is_present(regex, content):
@@ -48,13 +51,34 @@ def render_csv(header, data, out_path='output.csv'):
             for i in data:
                 input.append(dict(i))
         dict_writer.writerows(input)
-    return
 
-# convert nested dictionary to csv
+
 def ndict_to_csv(obj, output_path):
+    """Convert nested dictionary to csv
+
+    :param obj: Stream information list
+    :type obj: list
+    :param output_path: Path to save the csv file.
+    :return: None
+    """
     tree = get_tree(obj)
     if isinstance(obj, list):
         header = [i[0] for i in tree[0]]
     else:
         header = [i[0] for i in tree]
-    return render_csv(header, tree, output_path)
+    render_csv(header, tree, output_path)
+
+
+def run_until_completed(coros):
+    futures = [asyncio.ensure_future(c) for c in coros]
+
+    async def first_to_finish():
+        while True:
+            await asyncio.sleep(0)
+            for f in futures:
+                if f.done():
+                    futures.remove(f)
+                    return f.result()
+
+    while len(futures) > 0:
+        yield first_to_finish()
