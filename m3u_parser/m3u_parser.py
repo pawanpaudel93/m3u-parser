@@ -108,7 +108,8 @@ class M3uParser:
                      "#EXTINF" in self.__lines[line_num])
             self.__loop.run_until_complete(self.__run_until_completed(coros))
         except BaseException as error:
-            print(str(error), str(traceback.format_exc()))
+            pass
+            # print(str(error), str(traceback.format_exc()))
         else:
             self.__streams_info_backup = self.__lines.copy()
             self.__loop.run_until_complete(asyncio.sleep(0))
@@ -184,7 +185,7 @@ class M3uParser:
     def filter_by(self, key, filters, retrieve=True, nested_key=False):
         """Filter streams_info.
 
-        It retrieves/removes stream information from streams_info list using filter/s on key.
+        It retrieves/removes stream information from streams information list using filter/s on key.
 
         :param key: Key can be single or nested. eg. key='name', key='language-name'
         :type key: str
@@ -218,16 +219,16 @@ class M3uParser:
                 ), self.__streams_info))
 
     def reset_operations(self):
-        """Reset the streams_info to initial state before various operations.
+        """Reset the stream information list to initial state before various operations.
 
         :rtype: None
         """
         self.__streams_info = self.__streams_info_backup.copy()
 
     def remove_by_extension(self, extension):
-        """Remove stream_info with certain extension/s.
+        """Remove stream information with certain extension/s.
 
-        It removes stream information from streams_info list based on extension/s provided.
+        It removes stream information from streams information list based on extension/s provided.
 
         :param extension: Name of the extension like mp4, m3u8 etc. It can be a string or list of extension/s.
         :type extension: str or list
@@ -328,7 +329,7 @@ class M3uParser:
     def to_file(self, filename, format='json'):
         """Save to file (CSV or JSON)
 
-        It saves streams information as a CSV or JSON file with a given filename parameter and format.
+        It saves streams information as a CSV or JSON file with a given filename and format parameters.
 
         :param filename: Name of the file to save streams_info as.
         :type filename: str

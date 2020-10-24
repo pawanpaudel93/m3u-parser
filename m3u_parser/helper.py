@@ -54,7 +54,7 @@ def render_csv(header, data, out_path='output.csv'):
 
 
 def ndict_to_csv(obj, output_path):
-    """Convert nested dictionary to csv
+    """Convert nested dictionary to csv.
 
     :param obj: Stream information list
     :type obj: list
