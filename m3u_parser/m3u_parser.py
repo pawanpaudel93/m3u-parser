@@ -13,7 +13,10 @@ import traceback
 import time
 from urllib.parse import urlparse, unquote
 
-from helper import is_present, ndict_to_csv, run_until_completed
+try:
+    from helper import is_present, ndict_to_csv, run_until_completed
+except ModuleNotFoundError:
+    from .helper import is_present, ndict_to_csv, run_until_completed
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(levelname)s: %(message)s")
 
