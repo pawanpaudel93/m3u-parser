@@ -105,7 +105,11 @@ class M3uParser:
 
     def __parse_lines(self):
         num_lines = len(self.__lines)
-        self.__loop = asyncio.get_event_loop()
+        try:
+            self.__loop = asyncio.get_event_loop()
+        except RuntimeError:
+            self.__loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.__loop)
         try:
             coros = (self.__parse_line(line_num) for line_num in range(num_lines) if
                      "#EXTINF" in self.__lines[line_num])
