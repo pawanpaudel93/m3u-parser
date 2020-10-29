@@ -21,7 +21,7 @@ def is_dict(item, ans=None):
         else:
             if ans:
                 ans.append(str(k))
-                key = ','.join(ans).replace(',', '_')
+                key = ",".join(ans).replace(",", "_")
                 tree.extend([(key, str(v))])
                 ans.remove(str(k))
             else:
@@ -40,9 +40,9 @@ def get_tree(item):
     return tree
 
 
-def render_csv(header, data, out_path='output.csv'):
+def render_csv(header, data, out_path="output.csv"):
     input = []
-    with open(out_path, 'w') as f:
+    with open(out_path, "w") as f:
         dict_writer = csv.DictWriter(f, fieldnames=header)
         dict_writer.writeheader()
         if not isinstance(data[0], list):

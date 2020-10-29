@@ -18,7 +18,9 @@ try:
 except ModuleNotFoundError:
     from .helper import is_present, ndict_to_csv, run_until_completed
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(levelname)s: %(message)s")
+logging.basicConfig(
+    stream=sys.stdout, level=logging.INFO, format="%(levelname)s: %(message)s"
+)
 
 
 class M3uParser:
@@ -48,18 +50,20 @@ class M3uParser:
         self.__timeout = timeout
         self.__loop = None
         self.__headers = {
-            'User-Agent': useragent if useragent else "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, "
-                                                      "like Gecko) Chrome/84.0.4147.89 Safari/537.36 "
+            "User-Agent": useragent
+            if useragent
+            else "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36"
         }
         self.__check_live = False
         self.__content = ""
-        self.__url_regex = re.compile(r"^(?:(?:https?|ftp)://)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!("
-                                      r"?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,"
-                                      r"3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){"
-                                      r"2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*["
-                                      r"a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*["
-                                      r"a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:/\S*)?$"
-                                      )
+        self.__url_regex = re.compile(
+            r"^(?:(?:https?|ftp)://)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!("
+            r"?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,"
+            r"3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){"
+            r"2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*["
+            r"a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*["
+            r"a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:/\S*)?$"
+        )
 
     def parse_m3u(self, path, check_live=True):
         """Parses the content of local file/URL.
@@ -75,7 +79,7 @@ class M3uParser:
 
         """
         self.__check_live = check_live
-        if urlparse(path).scheme != '' or re.search(self.__url_regex, path):
+        if urlparse(path).scheme != "" or re.search(self.__url_regex, path):
             logging.info("Started parsing m3u link...")
             try:
                 self.__content = requests.get(url).text
@@ -85,14 +89,18 @@ class M3uParser:
         else:
             logging.info("Started parsing m3u file...")
             try:
-                with open(unquote(path), errors='ignore') as fp:
+                with open(unquote(path), errors="ignore") as fp:
                     self.__content = fp.read()
             except FileNotFoundError:
                 logging.info("File doesn't exist!!!")
                 exit()
 
         # splitting contents into lines to parse them
-        self.__lines = [line.strip('\n\r') for line in self.__content.split("\n") if line.strip('\n\r') != '']
+        self.__lines = [
+            line.strip("\n\r")
+            for line in self.__content.split("\n")
+            if line.strip("\n\r") != ""
+        ]
         if len(self.__lines) > 0:
             self.__parse_lines()
         else:
@@ -111,12 +119,14 @@ class M3uParser:
             self.__loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.__loop)
         try:
-            coros = (self.__parse_line(line_num) for line_num in range(num_lines) if
-                     "#EXTINF" in self.__lines[line_num])
+            coros = (
+                self.__parse_line(line_num)
+                for line_num in range(num_lines)
+                if "#EXTINF" in self.__lines[line_num]
+            )
             self.__loop.run_until_complete(self.__run_until_completed(coros))
-        except BaseException as error:
+        except BaseException:
             pass
-            # print(str(error), str(traceback.format_exc()))
         else:
             self.__streams_info_backup = self.__lines.copy()
             self.__loop.run_until_complete(asyncio.sleep(0))
@@ -128,11 +138,13 @@ class M3uParser:
 
     async def __parse_line(self, line_num):
         line_info = self.__lines[line_num]
-        stream_link = ''
+        stream_link = ""
         streams_link = []
         try:
             for i in [1, 2]:
-                if self.__lines[line_num + i] and re.search(self.__url_regex, self.__lines[line_num + i]):
+                if self.__lines[line_num + i] and re.search(
+                    self.__url_regex, self.__lines[line_num + i]
+                ):
                     streams_link.append(self.__lines[line_num + i])
                     break
             stream_link = streams_link[0]
@@ -150,18 +162,22 @@ class M3uParser:
                 tvg_url = is_present(r"tvg-url=\"(.*?)\"", line_info)
                 country_obj = pycountry.countries.get(alpha_2=country.upper())
                 language_obj = pycountry.languages.get(name=country.capitalize())
-                country_name = country_obj.name if country_obj else ''
-                language_code = language_obj.alpha_3 if language_obj else ''
+                country_name = country_obj.name if country_obj else ""
+                language_code = language_obj.alpha_3 if language_obj else ""
 
                 timeout = aiohttp.ClientTimeout(total=self.__timeout)
-                status = 'BAD'
+                status = "BAD"
                 if self.__check_live:
                     try:
                         async with aiohttp.ClientSession() as session:
-                            async with session.request('get', stream_link, headers=self.__headers,
-                                                       timeout=timeout) as response:
+                            async with session.request(
+                                "get",
+                                stream_link,
+                                headers=self.__headers,
+                                timeout=timeout,
+                            ) as response:
                                 if response.status == 200:
-                                    status = 'GOOD'
+                                    status = "GOOD"
                     except:
                         pass
                 temp = {
@@ -173,18 +189,15 @@ class M3uParser:
                         "code": language_code,
                         "name": language,
                     },
-                    "country": {
-                        "code": country,
-                        "name": country_name
-                    },
+                    "country": {"code": country, "name": country_name},
                     "tvg": {
                         "id": tvg_id,
                         "name": tvg_name,
                         "url": tvg_url,
-                    }
+                    },
                 }
                 if self.__check_live:
-                    temp['status'] = status
+                    temp["status"] = status
                 self.__streams_info.append(temp)
             except AttributeError:
                 pass
@@ -204,26 +217,54 @@ class M3uParser:
         :type nested_key: bool
         :rtype: None
         """
-        key_0, key_1 = [''] * 2
+        key_0, key_1 = [""] * 2
         if nested_key:
-            key_0, key_1 = key.split('-')
+            key_0, key_1 = key.split("-")
         if not filters:
             logging.info("Filter word/s missing!!!")
             return []
         if not isinstance(filters, list):
             filters = [filters]
         if retrieve:
-            self.__streams_info = list(filter(
-                lambda file: any(
-                    [re.search(re.compile(fltr, flags=re.IGNORECASE),
-                               file[key_0][key_1] if nested_key else file[key]) for fltr in filters]
-                ), self.__streams_info))
+            try:
+                self.__streams_info = list(
+                    filter(
+                        lambda stream_info: any(
+                            [
+                                re.search(
+                                    re.compile(fltr, flags=re.IGNORECASE),
+                                    stream_info[key_0][key_1]
+                                    if nested_key
+                                    else stream_info[key],
+                                )
+                                for fltr in filters
+                            ]
+                        ),
+                        self.__streams_info,
+                    )
+                )
+            except KeyError:
+                print(f"{key} is missing in stream info")
         else:
-            self.__streams_info = list(filter(
-                lambda file: any(
-                    [not re.search(re.compile(fltr, flags=re.IGNORECASE),
-                                   file[key_0][key_1] if nested_key else file[key]) for fltr in filters]
-                ), self.__streams_info))
+            try:
+                self.__streams_info = list(
+                    filter(
+                        lambda stream_info: any(
+                            [
+                                not re.search(
+                                    re.compile(fltr, flags=re.IGNORECASE),
+                                    stream_info[key_0][key_1]
+                                    if nested_key
+                                    else stream_info[key],
+                                )
+                                for fltr in filters
+                            ]
+                        ),
+                        self.__streams_info,
+                    )
+                )
+            except KeyError:
+                print(f"{key} is missing in stream info")
 
     def reset_operations(self):
         """Reset the stream information list to initial state before various operations.
@@ -241,7 +282,7 @@ class M3uParser:
         :type extension: str or list
         :rtype: None
         """
-        self.filter_by('url', extension, retrieve=False, nested_key=False)
+        self.filter_by("url", extension, retrieve=False, nested_key=False)
 
     def retrieve_by_extension(self, extension):
         """Select only streams information with a certain extension/s.
@@ -252,7 +293,7 @@ class M3uParser:
         :type extension: str or list
         :rtype: None
         """
-        self.filter_by('url', extension, retrieve=True, nested_key=False)
+        self.filter_by("url", extension, retrieve=True, nested_key=False)
 
     def remove_by_category(self, filter_word):
         """Removes streams information with category containing a certain filter word/s.
@@ -263,7 +304,7 @@ class M3uParser:
         :type filter_word: str or list
         :rtype: None
         """
-        self.filter_by('category', filter_word, retrieve=False)
+        self.filter_by("category", filter_word, retrieve=False)
 
     def retrieve_by_category(self, filter_word):
         """Retrieve only streams information that contains a certain filter word/s.
@@ -274,7 +315,7 @@ class M3uParser:
         :type filter_word: str or list
         :rtype: None
         """
-        self.filter_by('category', filter_word, retrieve=True)
+        self.filter_by("category", filter_word, retrieve=True)
 
     def sort_by(self, key, asc=True, nested_key=False):
         """Sort streams information.
@@ -289,11 +330,15 @@ class M3uParser:
         :type nested_key: bool
         :rtype: None
         """
-        key_0, key_1 = [''] * 2
+        key_0, key_1 = [""] * 2
         if nested_key:
-            key_0, key_1 = key.split('-')
+            key_0, key_1 = key.split("-")
         self.__streams_info = sorted(
-            self.__streams_info, key=lambda file: file[key_0][key_1] if nested_key else file[key], reverse=not asc
+            self.__streams_info,
+            key=lambda stream_info: stream_info[key_0][key_1]
+            if nested_key
+            else stream_info[key],
+            reverse=not asc,
         )
 
     def get_json(self, indent=4):
@@ -333,7 +378,7 @@ class M3uParser:
             random.shuffle(self.__streams_info)
         return random.choice(self.__streams_info)
 
-    def to_file(self, filename, format='json'):
+    def to_file(self, filename, format="json"):
         """Save to file (CSV or JSON)
 
         It saves streams information as a CSV or JSON file with a given filename and format parameters.
@@ -345,7 +390,7 @@ class M3uParser:
         :rtype: None
         """
         logging.info("Saving to file...")
-        format = filename.split('.')[-1] if len(filename.split('.')) > 1 else format
+        format = filename.split(".")[-1] if len(filename.split(".")) > 1 else format
 
         def with_extension(name, ext):
             name, ext = name.lower(), ext.lower()
@@ -354,12 +399,12 @@ class M3uParser:
             else:
                 return name + f".{ext}"
 
-        if format == 'json':
+        if format == "json":
             data = json.dumps(self.__streams_info, indent=4)
-            with open(with_extension(filename, format), 'w') as fp:
+            with open(with_extension(filename, format), "w") as fp:
                 fp.write(data)
 
-        elif format == 'csv':
+        elif format == "csv":
             ndict_to_csv(self.__streams_info, with_extension(filename, format))
         else:
             logging.info("Unrecognised format!!!")
@@ -370,7 +415,7 @@ if __name__ == "__main__":
     useragent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
     m3u_playlist = M3uParser(timeout=5, useragent=useragent)
     m3u_playlist.parse_m3u(url)
-    m3u_playlist.remove_by_extension('mp4')
-    m3u_playlist.filter_by('status', 'GOOD')
+    m3u_playlist.remove_by_extension("mp4")
+    m3u_playlist.filter_by("status", "GOOD")
     print(len(m3u_playlist.get_list()))
-    m3u_playlist.to_file('pawan.json')
+    m3u_playlist.to_file("pawan.json")
