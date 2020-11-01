@@ -203,7 +203,7 @@ class M3uParser:
                 pass
 
     def filter_by(self, key, filters, retrieve=True, nested_key=False):
-        """Filter streams_info.
+        """Filter streams infomation.
 
         It retrieves/removes stream information from streams information list using filter/s on key.
 
