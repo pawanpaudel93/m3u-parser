@@ -1,6 +1,6 @@
 <h1 align="center">Welcome to m3u_parser</h1>
 <p>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.1.0-blue.svg?cacheSeconds=2592000" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.1.1-blue.svg?cacheSeconds=2592000" />
 </p>
 
 > A parser for m3u files. 
@@ -9,29 +9,28 @@ It parses the contents of m3u file to a list of streams information which can be
 ### 🏠 [Homepage](https://github.com/pawanpaudel93/m3u_parser)
 
 ## Install
-> pip install git+https://github.com/pawanpaudel93/m3u_parser.git#egg=m3u_parser
+> pip install m3u-parser
 
 OR
 
-> pipenv install git+https://github.com/pawanpaudel93/m3u_parser.git#egg=m3u_parser
+> pipenv install m3u-parser
 
 ## Example
 
 ```python
+from m3u_parser import M3uParser
 url = "/home/pawan/Downloads/ru.m3u"
 useragent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
 m3u_playlist = M3uParser(timeout=5, useragent=useragent)
 m3u_playlist.parse_m3u(url)
-INFO: Started parsing m3u file...
 m3u_playlist.remove_by_extension('mp4')
 m3u_playlist.filter_by('status', 'GOOD')
 print(len(m3u_playlist.get_list()))
-4
 m3u_playlist.to_file('pawan.json')
- INFO: Saving to file...
 ```
 ## Usage
 ```python
+from m3u_parser import M3uParser
 url = "/home/pawan/Downloads/ru.m3u"
 useragent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
 m3u_playlist = M3uParser(timeout=5, useragent=useragent)
