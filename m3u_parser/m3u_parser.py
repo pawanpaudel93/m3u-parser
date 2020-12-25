@@ -82,7 +82,7 @@ class M3uParser:
         if urlparse(path).scheme != "" or re.search(self.__url_regex, path):
             logging.info("Started parsing m3u link...")
             try:
-                self.__content = requests.get(url).text
+                self.__content = requests.get(path).text
             except:
                 logging.info("Cannot read anything from the url!!!")
                 exit()
