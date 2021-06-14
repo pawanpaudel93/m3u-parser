@@ -9,8 +9,8 @@ import sys
 import aiohttp
 import pycountry
 import requests
-import traceback
 import time
+import ssl
 from urllib.parse import urlparse, unquote
 
 try:
@@ -18,6 +18,7 @@ try:
 except ModuleNotFoundError:
     from .helper import is_present, ndict_to_csv, run_until_completed
 
+ssl.match_hostname = lambda cert, hostname: hostname == cert['subjectAltName'][0][1]
 logging.basicConfig(
     stream=sys.stdout, level=logging.INFO, format="%(levelname)s: %(message)s"
 )
@@ -64,6 +65,7 @@ class M3uParser:
             r"a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*["
             r"a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:/\S*)?$"
         )
+        self.__file_regex = re.compile(r"^[a-zA-Z]:\\((?:.*?\\)*).*\.[\d\w]{3,5}$|^(/[^/]*)+/?.[\d\w]{3,5}$")
 
     def parse_m3u(self, path, check_live=True):
         """Parses the content of local file/URL.
@@ -85,7 +87,7 @@ class M3uParser:
                 self.__content = requests.get(path).text
             except:
                 logging.info("Cannot read anything from the url!!!")
-                exit()
+                return
         else:
             logging.info("Started parsing m3u file...")
             try:
@@ -93,7 +95,7 @@ class M3uParser:
                     self.__content = fp.read()
             except FileNotFoundError:
                 logging.info("File doesn't exist!!!")
-                exit()
+                return
 
         # splitting contents into lines to parse them
         self.__lines = [
@@ -113,6 +115,7 @@ class M3uParser:
 
     def __parse_lines(self):
         num_lines = len(self.__lines)
+        self.__streams_info.clear()
         try:
             self.__loop = asyncio.get_event_loop()
         except RuntimeError:
@@ -128,24 +131,32 @@ class M3uParser:
         except BaseException:
             pass
         else:
-            self.__streams_info_backup = self.__lines.copy()
+            self.__streams_info_backup = self.__streams_info.copy()
             self.__loop.run_until_complete(asyncio.sleep(0))
             while self.__loop.is_running():
                 time.sleep(0.3)
                 if not self.__loop.is_running():
                     self.__loop.close()
                     break
+        logging.info("Parsing completed !!!")
 
     async def __parse_line(self, line_num):
         line_info = self.__lines[line_num]
         stream_link = ""
         streams_link = []
+        status = "BAD"
         try:
             for i in [1, 2]:
                 if self.__lines[line_num + i] and re.search(
                     self.__url_regex, self.__lines[line_num + i]
                 ):
                     streams_link.append(self.__lines[line_num + i])
+                    break
+                elif self.__lines[line_num + i] and re.search(
+                    self.__file_regex, self.__lines[line_num + i]
+                ):
+                    status = "GOOD"
+                    streams_link.append(self.__lines[line_num +i])
                     break
             stream_link = streams_link[0]
         except IndexError:
@@ -166,8 +177,7 @@ class M3uParser:
                 language_code = language_obj.alpha_3 if language_obj else ""
 
                 timeout = aiohttp.ClientTimeout(total=self.__timeout)
-                status = "BAD"
-                if self.__check_live:
+                if self.__check_live and status == "BAD":
                     try:
                         async with aiohttp.ClientSession() as session:
                             async with session.request(
@@ -389,7 +399,6 @@ class M3uParser:
         :type format: str
         :rtype: None
         """
-        logging.info("Saving to file...")
         format = filename.split(".")[-1] if len(filename.split(".")) > 1 else format
 
         def with_extension(name, ext):
@@ -398,16 +407,23 @@ class M3uParser:
                 return name
             else:
                 return name + f".{ext}"
+        
+        filename = with_extension(filename, format)
+        logging.info("Saving to file: %s"%filename)
+        try:
+            if format == "json":
+                data = json.dumps(self.__streams_info, indent=4)
+                with open(filename, "w") as fp:
+                    fp.write(data)
+                logging.info("Saved to file: %s"%filename)
 
-        if format == "json":
-            data = json.dumps(self.__streams_info, indent=4)
-            with open(with_extension(filename, format), "w") as fp:
-                fp.write(data)
-
-        elif format == "csv":
-            ndict_to_csv(self.__streams_info, with_extension(filename, format))
-        else:
-            logging.info("Unrecognised format!!!")
+            elif format == "csv":
+                ndict_to_csv(self.__streams_info, filename)
+                logging.info("Saved to file: %s"%filename)
+            else:
+                logging.info("Unrecognised format!!!")
+        except Exception as error:
+            logging.warning(str(error))
 
 
 if __name__ == "__main__":
