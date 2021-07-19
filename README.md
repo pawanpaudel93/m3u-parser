@@ -23,24 +23,24 @@ OR
 from m3u_parser import M3uParser
 url = "/home/pawan/Downloads/ru.m3u"
 useragent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
-m3u_playlist = M3uParser(timeout=5, useragent=useragent)
-m3u_playlist.parse_m3u(url)
-m3u_playlist.remove_by_extension('mp4')
-m3u_playlist.filter_by('status', 'GOOD')
-print(len(m3u_playlist.get_list()))
-m3u_playlist.to_file('pawan.json')
+parser = M3uParser(timeout=5, useragent=useragent)
+parser.parse_m3u(url)
+parser.remove_by_extension('mp4')
+parser.filter_by('status', 'GOOD')
+print(len(parser.get_list()))
+parser.to_file('pawan.json')
 ```
 ## Usage
 ```python
 from m3u_parser import M3uParser
 url = "/home/pawan/Downloads/ru.m3u"
 useragent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
-m3u_playlist = M3uParser(timeout=5, useragent=useragent)
+parser = M3uParser(timeout=5, useragent=useragent)
 ```
 >Functions
 
 ```python
-def parse_m3u(self, path, check_live=True):
+def parse_m3u(self, path: str, check_live: bool = True):
         """Parses the content of local file/URL.
 
         It downloads the file from the given url or use the local file path to get the content and parses line by line
@@ -53,7 +53,7 @@ def parse_m3u(self, path, check_live=True):
         :rtype: None
         """
 	
-def filter_by(self, key, filters, retrieve=True, nested_key=False):
+def filter_by(self, key: str, filters: Union[str, list], retrieve: bool = True, nested_key: bool = False):
         """Filter streams infomation.
 
         It retrieves/removes stream information from streams information list using filter/s on key.
@@ -75,7 +75,7 @@ def reset_operations(self):
         :rtype: None
         """
 		
-def remove_by_extension(self, extension):
+def remove_by_extension(self, extension: Union[str, list])
         """Remove stream information with certain extension/s.
 
         It removes stream information from streams information list based on extension/s provided.
@@ -85,7 +85,7 @@ def remove_by_extension(self, extension):
         :rtype: None
         """
 		
-def retrieve_by_extension(self, extension):
+def retrieve_by_extension(self, extension: Union[str, list]):
         """Select only streams information with a certain extension/s.
 
         It retrieves the stream information based on extension/s provided.
@@ -95,7 +95,7 @@ def retrieve_by_extension(self, extension):
         :rtype: None
         """
 		
-def remove_by_category(self, filter_word):
+def remove_by_category(self, filter_word: Union[str, list]):
         """Removes streams information with category containing a certain filter word/s.
 
         It removes stream information based on category using filter word/s.
@@ -105,7 +105,7 @@ def remove_by_category(self, filter_word):
         :rtype: None
         """
 		
-def retrieve_by_category(self, filter_word):
+def retrieve_by_category(self, filter_word: Union[str, list]):
         """Retrieve only streams information that contains a certain filter word/s.
 
         It retrieves stream information based on category/categories.
@@ -115,7 +115,7 @@ def retrieve_by_category(self, filter_word):
         :rtype: None
         """
 		
-def sort_by(self, key, asc=True, nested_key=False):
+def sort_by(self, key: str, asc: bool = True, nested_key: bool = False):
         """Sort streams information.
 
         It sorts streams information list sorting by key in asc/desc order.
@@ -129,7 +129,7 @@ def sort_by(self, key, asc=True, nested_key=False):
         :rtype: None
         """
 		
-def get_json(self, indent=4):
+def get_json(self, indent: int = 4):
         """Get the streams information as json.
 
         :param indent: Int value for indentation.
@@ -147,7 +147,7 @@ def get_list(self):
         :rtype: list
         """
 		
-def get_random_stream(self, random_shuffle=True):
+def get_random_stream(self, random_shuffle: bool = True):
         """Return a random stream information
 
         It returns a random stream information with shuffle if required.
@@ -158,7 +158,7 @@ def get_random_stream(self, random_shuffle=True):
         :rtype: dict
         """
 		
-def to_file(self, filename, format="json"):
+def to_file(self, filename: str, format: str = "json"):
         """Save to file (CSV or JSON)
 
         It saves streams information as a CSV or JSON file with a given filename and format parameters.
