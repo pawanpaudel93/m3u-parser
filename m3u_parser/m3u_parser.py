@@ -259,7 +259,7 @@ class M3uParser:
             try:
                 self.__streams_info = list(
                     filter(
-                        lambda stream_info: any(
+                        lambda stream_info: all(
                             [
                                 not re.search(
                                     re.compile(fltr, flags=re.IGNORECASE),
