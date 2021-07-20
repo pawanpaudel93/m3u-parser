@@ -396,6 +396,38 @@ class M3uParser:
             random.shuffle(self._streams_info)
         return random.choice(self._streams_info)
 
+    def _get_m3u_content(self) -> str:
+        """Save the streams information list to m3u file.
+
+        It saves the streams information list to m3u file.
+
+        :rtype: None
+        """
+        if len(self._streams_info) == 0:
+            return ""
+        content = "#EXTM3U\n"
+        for stream_info in self._streams_info:
+            country = stream_info.get("country", {}).get("code", "")
+            language = stream_info.get("language", {}).get("name", "")
+            content_list = [
+                stream_info["tvg"]["id"],
+                stream_info["tvg"]["name"],
+                country,
+                language,
+                stream_info["logo"],
+                stream_info["tvg"]["url"],
+                stream_info["category"],
+                stream_info["name"],
+                stream_info["url"],
+            ]
+            content += (
+                '#EXTINF:-1 tvg-id="{}" tvg-name="{}" tvg-country="{}" tvg-lang="{}" '
+                'tvg-logo="{}" tvg-url="{}" group-title="{}", {}\n{}\n'
+            )
+            content = content.replace('tvg-country="" ', "").replace('tvg-lang="" ', "")
+            content = content.format(*content_list)
+        return content
+
     def to_file(self, filename: str, format: str = "json"):
         """Save to file (CSV or JSON)
 
@@ -427,6 +459,12 @@ class M3uParser:
 
             elif format == "csv":
                 ndict_to_csv(self._streams_info, filename)
+                logging.info("Saved to file: %s" % filename)
+
+            elif format == "m3u":
+                content = self._get_m3u_content()
+                with open(filename, "w") as fp:
+                    fp.write(content)
                 logging.info("Saved to file: %s" % filename)
             else:
                 logging.error("Unrecognised format!!!")

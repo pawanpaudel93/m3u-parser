@@ -6,7 +6,7 @@ import re
 # get matching regex from content
 def get_by_regex(regex, content):
     match = re.search(re.compile(regex, flags=re.IGNORECASE), content)
-    return match.group(1) if match else ""
+    return match.group(1).strip() if match else ""
 
 
 def is_dict(item, ans=None):
