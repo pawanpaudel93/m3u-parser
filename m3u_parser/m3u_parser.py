@@ -418,37 +418,38 @@ class M3uParser:
         """
         if len(self._streams_info) == 0:
             return ""
-        content = "#EXTM3U\n"
+        content = ["#EXTM3U"]
         for stream_info in self._streams_info:
-            country = stream_info.get("country", {}).get("code", "")
-            language = stream_info.get("language", {}).get("name", "")
-            content_list = [
-                stream_info["tvg"]["id"],
-                stream_info["tvg"]["name"],
-                country,
-                language,
-                stream_info["logo"],
-                stream_info["tvg"]["url"],
-                stream_info["category"],
-                stream_info["name"],
-                stream_info["url"],
-            ]
-            content += (
-                '#EXTINF:-1 tvg-id="{}" tvg-name="{}" tvg-country="{}" tvg-lang="{}" '
-                'tvg-logo="{}" tvg-url="{}" group-title="{}", {}\n{}\n'
-            )
-            content = content.replace('tvg-country="" ', "").replace('tvg-lang="" ', "")
-            content = content.format(*content_list)
-        return content
+            line = '#EXTINF:-1'
+            if 'tvg' in stream_info:
+                if 'id' in stream_info['tvg']:
+                    line += ' tvg-id="{}"'.format(stream_info['tvg']['id'])
+                if 'name' in stream_info['tvg']:
+                    line += ' tvg-name="{}"'.format(stream_info['tvg']['name'])
+                if 'url' in stream_info['tvg']:
+                    line += ' tvg-url="{}"'.format(stream_info['tvg']['url'])
+            if 'logo' in stream_info:
+                line += ' tvg-logo="{}"'.format(stream_info['logo'])
+            if 'country' in stream_info:
+                line += ' tvg-country="{}"'.format(stream_info['country']['code'])
+            if 'language' in stream_info:
+                line += ' tvg-language="{}"'.format(stream_info['language']['code'])
+            if 'category' in stream_info:
+                line += ' group-title="{}"'.format(stream_info['category'])
+            if 'name' in stream_info:
+                line += ', ' + stream_info['name']
+            content.append(line)
+            content.append(stream_info["url"])
+        return '\n'.join(content)
 
     def to_file(self, filename: str, format: str = "json"):
-        """Save to file (CSV or JSON)
+        """Save to file (CSV, JSON, or M3U)
 
-        It saves streams information as a CSV or JSON file with a given filename and format parameters.
+        It saves streams information as a CSV, JSON, or M3U file with a given filename and format parameters.
 
         :param filename: Name of the file to save streams_info as.
         :type filename: str
-        :param format: csv/json to save the streams_info.
+        :param format: csv/json/m3u to save the streams_info.
         :type format: str
         :rtype: None
         """
@@ -463,26 +464,23 @@ class M3uParser:
 
         filename = with_extension(filename, format)
         logging.info("Saving to file: %s" % filename)
-        try:
-            if format == "json":
-                data = json.dumps(self._streams_info, indent=4)
-                with open(filename, "w") as fp:
-                    fp.write(data)
-                logging.info("Saved to file: %s" % filename)
+        if format == "json":
+            data = json.dumps(self._streams_info, indent=4)
+            with open(filename, "w") as fp:
+                fp.write(data)
+            logging.info("Saved to file: %s" % filename)
 
-            elif format == "csv":
-                ndict_to_csv(self._streams_info, filename)
-                logging.info("Saved to file: %s" % filename)
+        elif format == "csv":
+            ndict_to_csv(self._streams_info, filename)
+            logging.info("Saved to file: %s" % filename)
 
-            elif format == "m3u":
-                content = self._get_m3u_content()
-                with open(filename, "w") as fp:
-                    fp.write(content)
-                logging.info("Saved to file: %s" % filename)
-            else:
-                logging.error("Unrecognised format!!!")
-        except Exception as error:
-            logging.warning(str(error))
+        elif format == "m3u":
+            content = self._get_m3u_content()
+            with open(filename, "w") as fp:
+                fp.write(content)
+            logging.info("Saved to file: %s" % filename)
+        else:
+            logging.error("Unrecognised format!!!")
 
 
 if __name__ == "__main__":
