@@ -69,6 +69,14 @@ class M3uParser:
         self._file_regex = re.compile(
             r"^[a-zA-Z]:\\((?:.*?\\)*).*\.[\d\w]{3,5}$|^(/[^/]*)+/?.[\d\w]{3,5}$"
         )
+        self._tvg_name_regex = re.compile(r"tvg-name=\"(.*?)\"", flags=re.IGNORECASE)
+        self._tvg_id_regex = re.compile(r"tvg-id=\"(.*?)\"", flags=re.IGNORECASE)
+        self._logo_regex = re.compile(r"tvg-logo=\"(.*?)\"", flags=re.IGNORECASE)
+        self._category_regex = re.compile(r"group-title=\"(.*?)\"", flags=re.IGNORECASE)
+        self._title_regex = re.compile("[,](?!.*[,])(.*?)$", flags=re.IGNORECASE)
+        self._country_regex = re.compile(r"tvg-country=\"(.*?)\"", flags=re.IGNORECASE)
+        self._language_regex = re.compile(r"tvg-language=\"(.*?)\"", flags=re.IGNORECASE)
+        self._tvg_url_regex = re.compile(r"tvg-url=\"(.*?)\"", flags=re.IGNORECASE)
 
     def parse_m3u(self, path: str, check_live: bool = True):
         """Parses the content of local file/URL.
@@ -166,24 +174,42 @@ class M3uParser:
             pass
         if line_info and stream_link:
             try:
-                temp = {}
-                tvg_name = get_by_regex(r"tvg-name=\"(.*?)\"", line_info)
-                tvg_id = get_by_regex(r"tvg-id=\"(.*?)\"", line_info)
-                logo = get_by_regex(r"tvg-logo=\"(.*?)\"", line_info)
-                category = get_by_regex(r"group-title=\"(.*?)\"", line_info)
-                title = get_by_regex("[,](?!.*[,])(.*?)$", line_info)
-                country = get_by_regex(r"tvg-country=\"(.*?)\"", line_info)
-                language = get_by_regex(r"tvg-language=\"(.*?)\"", line_info)
-                tvg_url = get_by_regex(r"tvg-url=\"(.*?)\"", line_info)
+                info = {}
+                # Title
+                title = get_by_regex(self._title_regex, line_info)
+                if title != None:
+                    info["name"] = title
+                # Logo
+                logo = get_by_regex(self._logo_regex, line_info)
+                if logo != None:
+                    info["logo"] = logo
+                info["url"] = stream_link
+                # Category
+                category = get_by_regex(self._category_regex, line_info)
+                if category != None:
+                    info["category"] = category
+                # TVG information
+                tvg_id = get_by_regex(self._tvg_id_regex, line_info)
+                tvg_name = get_by_regex(self._tvg_name_regex, line_info)
+                tvg_url = get_by_regex(self._tvg_url_regex, line_info)
+                if tvg_id != None or tvg_name != None or tvg_url != None:
+                    info["tvg"] = {}
+                    for key,val in zip(["id", "name", "url"], [tvg_id, tvg_name, tvg_url]):
+                        if val != None:
+                            info["tvg"][key] = val
+                # Country
+                country = get_by_regex(self._country_regex, line_info)
                 if country:
                     country_obj = pycountry.countries.get(alpha_2=country.upper())
-                    temp["country"] = {
+                    info["country"] = {
                         "code": country,
                         "name": country_obj.name if country_obj else "",
                     }
+                # Language
+                language = get_by_regex(self._language_regex, line_info)
                 if language:
                     language_obj = pycountry.languages.get(name=country.capitalize())
-                    temp["language"] = {
+                    info["language"] = {
                         "code": language_obj.alpha_3 if language_obj else "",
                         "name": language,
                     }
@@ -202,22 +228,9 @@ class M3uParser:
                                     status = "GOOD"
                     except:
                         pass
-                temp.update(
-                    {
-                        "name": title,
-                        "logo": logo,
-                        "url": stream_link,
-                        "category": category,
-                        "tvg": {
-                            "id": tvg_id,
-                            "name": tvg_name,
-                            "url": tvg_url,
-                        },
-                    }
-                )
                 if self._check_live:
-                    temp["status"] = status
-                self._streams_info.append(temp)
+                    info["status"] = status
+                self._streams_info.append(info)
             except AttributeError:
                 pass
 

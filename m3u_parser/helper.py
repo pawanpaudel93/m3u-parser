@@ -4,9 +4,17 @@ import re
 
 
 # get matching regex from content
-def get_by_regex(regex, content):
-    match = re.search(re.compile(regex, flags=re.IGNORECASE), content)
-    return match.group(1).strip() if match else ""
+def get_by_regex(regex: re.Pattern, content: str):
+    """Matches content by regex and returns the value captured by the first group, or None if there was no match
+
+    :param regex: A compiled regex to match
+    :type regex: re.Pattern
+    :param content: The content on which the regex should be applied
+    :type content: str
+    :rtype: str, None
+    """
+    match = re.search(regex, content)
+    return match.group(1).strip() if match else None
 
 
 def is_dict(item, ans=None):
