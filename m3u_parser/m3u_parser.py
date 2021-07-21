@@ -51,6 +51,7 @@ class M3uParser:
         self._lines = []
         self._timeout = timeout
         self._loop = None
+        self._trim = False
         self._headers = {
             "User-Agent": useragent
             if useragent
@@ -75,10 +76,12 @@ class M3uParser:
         self._category_regex = re.compile(r"group-title=\"(.*?)\"", flags=re.IGNORECASE)
         self._title_regex = re.compile("[,](?!.*[,])(.*?)$", flags=re.IGNORECASE)
         self._country_regex = re.compile(r"tvg-country=\"(.*?)\"", flags=re.IGNORECASE)
-        self._language_regex = re.compile(r"tvg-language=\"(.*?)\"", flags=re.IGNORECASE)
+        self._language_regex = re.compile(
+            r"tvg-language=\"(.*?)\"", flags=re.IGNORECASE
+        )
         self._tvg_url_regex = re.compile(r"tvg-url=\"(.*?)\"", flags=re.IGNORECASE)
 
-    def parse_m3u(self, path: str, check_live: bool = True):
+    def parse_m3u(self, path: str, check_live: bool = True, trim: bool = False):
         """Parses the content of local file/URL.
 
         It downloads the file from the given url or use the local file path to get the content and parses line by line
@@ -86,12 +89,15 @@ class M3uParser:
 
         :param path: Path can be a url or local filepath
         :type path: str
+        :param trim: To remove the non existing information from a stream
+        :type trim: bool
         :param check_live: To check if the stream links are working or not
         :type check_live: bool
         :rtype: None
 
         """
         self._check_live = check_live
+        self._trim = trim
         if urlparse(path).scheme != "" or re.search(self._url_regex, path):
             logging.info("Started parsing m3u link...")
             try:
@@ -177,40 +183,48 @@ class M3uParser:
                 info = {}
                 # Title
                 title = get_by_regex(self._title_regex, line_info)
-                if title != None:
+                if title or not (title or self._trim):
                     info["name"] = title
                 # Logo
                 logo = get_by_regex(self._logo_regex, line_info)
-                if logo != None:
+                if logo or not (logo or self._trim):
                     info["logo"] = logo
                 info["url"] = stream_link
                 # Category
                 category = get_by_regex(self._category_regex, line_info)
-                if category != None:
+                if category or not (category or self._trim):
                     info["category"] = category
                 # TVG information
                 tvg_id = get_by_regex(self._tvg_id_regex, line_info)
                 tvg_name = get_by_regex(self._tvg_name_regex, line_info)
                 tvg_url = get_by_regex(self._tvg_url_regex, line_info)
-                if tvg_id != None or tvg_name != None or tvg_url != None:
-                    info["tvg"] = {}
-                    for key,val in zip(["id", "name", "url"], [tvg_id, tvg_name, tvg_url]):
-                        if val != None:
-                            info["tvg"][key] = val
+                if tvg_id or tvg_name or tvg_url:
+                    tvg_info = {}
+                    for key, val in zip(
+                        ["id", "name", "url"], [tvg_id, tvg_name, tvg_url]
+                    ):
+                        if val or not (val or self._trim):
+                            tvg_info[key] = val
+                    if tvg_info or not (tvg_info or self._trim):
+                        info["tvg"] = tvg_info
                 # Country
                 country = get_by_regex(self._country_regex, line_info)
-                if country:
-                    country_obj = pycountry.countries.get(alpha_2=country.upper())
+                if country or not (country or self._trim):
+                    country_obj = pycountry.countries.get(
+                        alpha_2=country if country else ""
+                    )
                     info["country"] = {
                         "code": country,
-                        "name": country_obj.name if country_obj else "",
+                        "name": country_obj.name if country_obj else None,
                     }
                 # Language
                 language = get_by_regex(self._language_regex, line_info)
-                if language:
-                    language_obj = pycountry.languages.get(name=country.capitalize())
+                if language or not (language or self._trim):
+                    language_obj = pycountry.languages.get(
+                        name=language if language else ""
+                    )
                     info["language"] = {
-                        "code": language_obj.alpha_3 if language_obj else "",
+                        "code": language_obj.alpha_3 if language_obj else None,
                         "name": language,
                     }
 
@@ -238,6 +252,7 @@ class M3uParser:
         self,
         key: str,
         filters: Union[str, list],
+        key_splitter: str = "-",
         retrieve: bool = True,
         nested_key: bool = False,
     ):
@@ -250,6 +265,8 @@ class M3uParser:
         :type key: str
         :param filters: List of filter/s to perform the retrieve or remove operation.
         :type filters: str or list
+        :param key_splitter: A splitter to split the nested keys. Default: "-"
+        :type key_splitter: str
         :param retrieve: True to retrieve and False for removing based on key.
         :type retrieve: bool
         :param nested_key: True/False for if the key is nested or not.
@@ -259,9 +276,11 @@ class M3uParser:
         key_0, key_1 = [""] * 2
         if nested_key:
             try:
-                key_0, key_1 = key.split("-")
+                key_0, key_1 = key.split(key_splitter)
             except ValueError:
-                logging.error("Nested key must be in the format <key>-<nested_key>")
+                logging.error(
+                    "Nested key must be in the format <key><key_splitter><nested_key>"
+                )
                 return
         if not filters:
             logging.error("Filter word/s missing!!!")
@@ -341,13 +360,21 @@ class M3uParser:
         """
         self.filter_by("category", filter_word, retrieve=True)
 
-    def sort_by(self, key: str, asc: bool = True, nested_key: bool = False):
+    def sort_by(
+        self,
+        key: str,
+        key_splitter: str = "-",
+        asc: bool = True,
+        nested_key: bool = False,
+    ):
         """Sort streams information.
 
         It sorts streams information list sorting by key in asc/desc order.
 
         :param key: It can be single or nested key.
         :type key: str
+        :param key_splitter: A splitter to split the nested keys. Default: "-"
+        :type key_splitter: str
         :param asc: Sort by asc or desc order
         :type asc: bool
         :param nested_key: True/False for if the key is nested or not.
@@ -357,9 +384,11 @@ class M3uParser:
         key_0, key_1 = [""] * 2
         if nested_key:
             try:
-                key_0, key_1 = key.split("-")
+                key_0, key_1 = key.split(key_splitter)
             except ValueError:
-                logging.error("Nested key must be in the format <key>-<nested_key>")
+                logging.error(
+                    "Nested key must be in the format <key><key_splitter><nested_key>"
+                )
                 return
         try:
             self._streams_info = sorted(
@@ -420,27 +449,24 @@ class M3uParser:
             return ""
         content = ["#EXTM3U"]
         for stream_info in self._streams_info:
-            line = '#EXTINF:-1'
-            if 'tvg' in stream_info:
-                if 'id' in stream_info['tvg']:
-                    line += ' tvg-id="{}"'.format(stream_info['tvg']['id'])
-                if 'name' in stream_info['tvg']:
-                    line += ' tvg-name="{}"'.format(stream_info['tvg']['name'])
-                if 'url' in stream_info['tvg']:
-                    line += ' tvg-url="{}"'.format(stream_info['tvg']['url'])
-            if 'logo' in stream_info:
-                line += ' tvg-logo="{}"'.format(stream_info['logo'])
-            if 'country' in stream_info:
-                line += ' tvg-country="{}"'.format(stream_info['country']['code'])
-            if 'language' in stream_info:
-                line += ' tvg-language="{}"'.format(stream_info['language']['code'])
-            if 'category' in stream_info:
-                line += ' group-title="{}"'.format(stream_info['category'])
-            if 'name' in stream_info:
-                line += ', ' + stream_info['name']
+            line = "#EXTINF:-1"
+            if "tvg" in stream_info:
+                for key, value in stream_info["tvg"].items():
+                    if value:
+                        line += ' tvg-{}="{}"'.format(key, stream_info["tvg"][key])
+            if stream_info.get("logo"):
+                line += ' tvg-logo="{}"'.format(stream_info["logo"])
+            if stream_info.get("country", {}).get("code"):
+                line += ' tvg-country="{}"'.format(stream_info["country"]["code"])
+            if stream_info.get("language", {}).get("name"):
+                line += ' tvg-language="{}"'.format(stream_info["language"]["name"])
+            if stream_info.get("category"):
+                line += ' group-title="{}"'.format(stream_info["category"])
+            if stream_info.get("name"):
+                line += ", " + stream_info["name"]
             content.append(line)
             content.append(stream_info["url"])
-        return '\n'.join(content)
+        return "\n".join(content)
 
     def to_file(self, filename: str, format: str = "json"):
         """Save to file (CSV, JSON, or M3U)
@@ -463,6 +489,11 @@ class M3uParser:
                 return name + f".{ext}"
 
         filename = with_extension(filename, format)
+        if len(self._streams_info) == 0:
+            logging.info(
+                "Either parsing is not done or no stream info was found after parsing !!!"
+            )
+            return
         logging.info("Saving to file: %s" % filename)
         if format == "json":
             data = json.dumps(self._streams_info, indent=4)
@@ -471,8 +502,11 @@ class M3uParser:
             logging.info("Saved to file: %s" % filename)
 
         elif format == "csv":
-            ndict_to_csv(self._streams_info, filename)
-            logging.info("Saved to file: %s" % filename)
+            if not self._trim:
+                ndict_to_csv(self._streams_info, filename)
+                logging.info("Saved to file: %s" % filename)
+            else:
+                logging.info("Saving to csv file not supported in trim mode")
 
         elif format == "m3u":
             content = self._get_m3u_content()

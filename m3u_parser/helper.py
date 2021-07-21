@@ -1,10 +1,11 @@
+from typing import Union
 import asyncio
 import csv
 import re
 
 
 # get matching regex from content
-def get_by_regex(regex: re.Pattern, content: str):
+def get_by_regex(regex: re.Pattern, content: str) -> Union[str, None]:
     """Matches content by regex and returns the value captured by the first group, or None if there was no match
 
     :param regex: A compiled regex to match
@@ -17,7 +18,7 @@ def get_by_regex(regex: re.Pattern, content: str):
     return match.group(1).strip() if match else None
 
 
-def is_dict(item, ans=None):
+def is_dict(item: dict, ans: Union[None, list] = None) -> list:
     if ans is None:
         ans = []
     tree = []
@@ -29,39 +30,35 @@ def is_dict(item, ans=None):
         else:
             if ans:
                 ans.append(str(k))
-                key = ",".join(ans).replace(",", "_")
-                tree.extend([(key, str(v))])
+                key = "_".join(ans)
+                tree.extend([(key, str(v) if v else "")])
                 ans.remove(str(k))
             else:
-                tree.extend([(str(k), str(v))])
+                tree.extend([(str(k), str(v) if v else "")])
     return tree
 
 
-def get_tree(item):
+def get_tree(item: Union[list, dict]) -> list:
     tree = []
     if isinstance(item, dict):
         tree.extend(is_dict(item, ans=[]))
     elif isinstance(item, list):
-        tree = []
         for i in item:
             tree.append(get_tree(i))
     return tree
 
 
-def render_csv(header, data, out_path="output.csv"):
+def render_csv(header: list, data: list, out_path: str = "output.csv") -> None:
     input = []
     with open(out_path, "w") as f:
         dict_writer = csv.DictWriter(f, fieldnames=header)
         dict_writer.writeheader()
-        if not isinstance(data[0], list):
-            input.append(dict(data))
-        else:
-            for i in data:
-                input.append(dict(i))
+        for i in data:
+            input.append(dict(i))
         dict_writer.writerows(input)
 
 
-def ndict_to_csv(obj, output_path):
+def ndict_to_csv(obj: list, output_path: str) -> None:
     """Convert nested dictionary to csv.
 
     :param obj: Stream information list
@@ -70,10 +67,7 @@ def ndict_to_csv(obj, output_path):
     :return: None
     """
     tree = get_tree(obj)
-    if isinstance(obj, list):
-        header = [i[0] for i in tree[0]]
-    else:
-        header = [i[0] for i in tree]
+    header = [i[0] for i in tree[0]]
     render_csv(header, tree, output_path)
 
 
