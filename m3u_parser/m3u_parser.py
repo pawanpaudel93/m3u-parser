@@ -74,7 +74,7 @@ class M3uParser:
         self._tvg_id_regex = re.compile(r"tvg-id=\"(.*?)\"", flags=re.IGNORECASE)
         self._logo_regex = re.compile(r"tvg-logo=\"(.*?)\"", flags=re.IGNORECASE)
         self._category_regex = re.compile(r"group-title=\"(.*?)\"", flags=re.IGNORECASE)
-        self._title_regex = re.compile("[,](?!.*[,])(.*?)$", flags=re.IGNORECASE)
+        self._title_regex = re.compile(r"(?!.*=\",?.*\")[,](.*?)$", flags=re.IGNORECASE)
         self._country_regex = re.compile(r"tvg-country=\"(.*?)\"", flags=re.IGNORECASE)
         self._language_regex = re.compile(
             r"tvg-language=\"(.*?)\"", flags=re.IGNORECASE
@@ -463,7 +463,7 @@ class M3uParser:
             if stream_info.get("category"):
                 line += ' group-title="{}"'.format(stream_info["category"])
             if stream_info.get("name"):
-                line += ", " + stream_info["name"]
+                line += "," + stream_info["name"]
             content.append(line)
             content.append(stream_info["url"])
         return "\n".join(content)
@@ -506,7 +506,7 @@ class M3uParser:
                 ndict_to_csv(self._streams_info, filename)
                 logging.info("Saved to file: %s" % filename)
             else:
-                logging.info("Saving to csv file not supported in trim mode")
+                logging.info("Saving to csv file not supported in trim mode !!!")
 
         elif format == "m3u":
             content = self._get_m3u_content()

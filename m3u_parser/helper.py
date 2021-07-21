@@ -5,7 +5,7 @@ import re
 
 
 # get matching regex from content
-def get_by_regex(regex: re.Pattern, content: str) -> Union[str, None]:
+def get_by_regex(regex, content: str) -> Union[str, None]:
     """Matches content by regex and returns the value captured by the first group, or None if there was no match
 
     :param regex: A compiled regex to match

@@ -7,12 +7,12 @@ from setuptools import find_packages, setup, Command
 
 # Package meta-data.
 NAME = "m3u_parser"
-DESCRIPTION = "A useful module for parsing m3u files or links"
+DESCRIPTION = "A useful package for parsing m3u files or links"
 URL = "https://github.com/pawanpaudel93/m3u_parser"
 EMAIL = "pawanpaudel93@gmail.com"
 AUTHOR = "Pawan Paudel"
 REQUIRES_PYTHON = ">=3.0"
-VERSION = "0.1.5"
+VERSION = "0.1.6"
 
 REQUIRED = ["requests", "asyncio", "aiohttp", "pycountry"]
 
