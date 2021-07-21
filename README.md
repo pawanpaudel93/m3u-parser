@@ -40,7 +40,7 @@ parser = M3uParser(timeout=5, useragent=useragent)
 >Functions
 
 ```python
-def parse_m3u(self, path: str, check_live: bool = True):
+def parse_m3u(self, path: str, check_live: bool = True, trim: bool = False):
         """Parses the content of local file/URL.
 
         It downloads the file from the given url or use the local file path to get the content and parses line by line
@@ -48,12 +48,14 @@ def parse_m3u(self, path: str, check_live: bool = True):
 
         :param path: Path can be a url or local filepath
         :type path: str
+        :param trim: To remove the non existing information from a stream
+        :type trim: bool
         :param check_live: To check if the stream links are working or not
         :type check_live: bool
         :rtype: None
         """
 	
-def filter_by(self, key: str, filters: Union[str, list], retrieve: bool = True, nested_key: bool = False):
+def filter_by(self, key: str, filters: Union[str, list], key_splitter: str = "-", retrieve: bool = True, nested_key: bool = False):
         """Filter streams infomation.
 
         It retrieves/removes stream information from streams information list using filter/s on key.
@@ -62,6 +64,8 @@ def filter_by(self, key: str, filters: Union[str, list], retrieve: bool = True, 
         :type key: str
         :param filters: List of filter/s to perform the retrieve or remove operation.
         :type filters: str or list
+        :param key_splitter: A splitter to split the nested keys. Default: "-"
+        :type key_splitter: str
         :param retrieve: True to retrieve and False for removing based on key.
         :type retrieve: bool
         :param nested_key: True/False for if the key is nested or not.
@@ -115,13 +119,15 @@ def retrieve_by_category(self, filter_word: Union[str, list]):
         :rtype: None
         """
 		
-def sort_by(self, key: str, asc: bool = True, nested_key: bool = False):
+def sort_by(self, key: str, key_splitter: str = "-", asc: bool = True, nested_key: bool = False):
         """Sort streams information.
 
         It sorts streams information list sorting by key in asc/desc order.
 
         :param key: It can be single or nested key.
         :type key: str
+        :param key_splitter: A splitter to split the nested keys. Default: "-"
+        :type key_splitter: str
         :param asc: Sort by asc or desc order
         :type asc: bool
         :param nested_key: True/False for if the key is nested or not.
@@ -159,13 +165,13 @@ def get_random_stream(self, random_shuffle: bool = True):
         """
 		
 def to_file(self, filename: str, format: str = "json"):
-        """Save to file (CSV or JSON)
+        """Save to file (CSV, JSON, or M3U)
 
-        It saves streams information as a CSV or JSON file with a given filename and format parameters.
+        It saves streams information as a CSV, JSON, or M3U file with a given filename and format parameters.
 
         :param filename: Name of the file to save streams_info as.
         :type filename: str
-        :param format: csv/json to save the streams_info.
+        :param format: csv/json/m3u to save the streams_info.
         :type format: str
         :rtype: None
         """
