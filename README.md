@@ -40,7 +40,7 @@ parser = M3uParser(timeout=5, useragent=useragent)
 >Functions
 
 ```python
-def parse_m3u(self, path: str, check_live: bool = True, trim: bool = False):
+def parse_m3u(self, path: str, check_live: bool = True, enforce_schema: bool = False):
         """Parses the content of local file/URL.
 
         It downloads the file from the given url or use the local file path to get the content and parses line by line
@@ -48,8 +48,8 @@ def parse_m3u(self, path: str, check_live: bool = True, trim: bool = False):
 
         :param path: Path can be a url or local filepath
         :type path: str
-        :param trim: To remove the non existing information from a stream
-        :type trim: bool
+        :param enforce_schema: If the schema is forced, non-existing fields in a stream are filled with None/null. If it is not enforced, non-existing fields are ignored
+        :type enforce_schema: bool
         :param check_live: To check if the stream links are working or not
         :type check_live: bool
         :rtype: None

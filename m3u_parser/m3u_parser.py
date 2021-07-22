@@ -51,7 +51,7 @@ class M3uParser:
         self._lines = []
         self._timeout = timeout
         self._loop = None
-        self._trim = False
+        self._enforce_schema = True
         self._headers = {
             "User-Agent": useragent
             if useragent
@@ -81,7 +81,7 @@ class M3uParser:
         )
         self._tvg_url_regex = re.compile(r"tvg-url=\"(.*?)\"", flags=re.IGNORECASE)
 
-    def parse_m3u(self, path: str, check_live: bool = True, trim: bool = False):
+    def parse_m3u(self, path: str, check_live: bool = True, enforce_schema: bool = True):
         """Parses the content of local file/URL.
 
         It downloads the file from the given url or use the local file path to get the content and parses line by line
@@ -89,15 +89,15 @@ class M3uParser:
 
         :param path: Path can be a url or local filepath
         :type path: str
-        :param trim: To remove the non existing information from a stream
-        :type trim: bool
+        :param enforce_schema: If the schema is forced, non-existing fields in a stream are filled with None/null. If it is not enforced, non-existing fields are ignored
+        :type enforce_schema: bool
         :param check_live: To check if the stream links are working or not
         :type check_live: bool
         :rtype: None
 
         """
         self._check_live = check_live
-        self._trim = trim
+        self._enforce_schema = enforce_schema
         if urlparse(path).scheme != "" or re.search(self._url_regex, path):
             logging.info("Started parsing m3u link...")
             try:
@@ -183,33 +183,33 @@ class M3uParser:
                 info = {}
                 # Title
                 title = get_by_regex(self._title_regex, line_info)
-                if title or not (title or self._trim):
+                if title or self._enforce_schema:
                     info["name"] = title
                 # Logo
                 logo = get_by_regex(self._logo_regex, line_info)
-                if logo or not (logo or self._trim):
+                if logo or self._enforce_schema:
                     info["logo"] = logo
                 info["url"] = stream_link
                 # Category
                 category = get_by_regex(self._category_regex, line_info)
-                if category or not (category or self._trim):
+                if category or self._enforce_schema:
                     info["category"] = category
                 # TVG information
                 tvg_id = get_by_regex(self._tvg_id_regex, line_info)
                 tvg_name = get_by_regex(self._tvg_name_regex, line_info)
                 tvg_url = get_by_regex(self._tvg_url_regex, line_info)
-                if tvg_id or tvg_name or tvg_url:
+                if tvg_id or tvg_name or tvg_url or self._enforce_schema:
                     tvg_info = {}
                     for key, val in zip(
                         ["id", "name", "url"], [tvg_id, tvg_name, tvg_url]
                     ):
-                        if val or not (val or self._trim):
+                        if val or self._enforce_schema:
                             tvg_info[key] = val
-                    if tvg_info or not (tvg_info or self._trim):
+                    if tvg_info or self._enforce_schema:
                         info["tvg"] = tvg_info
                 # Country
                 country = get_by_regex(self._country_regex, line_info)
-                if country or not (country or self._trim):
+                if country or self._enforce_schema:
                     country_obj = pycountry.countries.get(
                         alpha_2=country if country else ""
                     )
@@ -219,7 +219,7 @@ class M3uParser:
                     }
                 # Language
                 language = get_by_regex(self._language_regex, line_info)
-                if language or not (language or self._trim):
+                if language or self._enforce_schema:
                     language_obj = pycountry.languages.get(
                         name=language if language else ""
                     )
@@ -502,11 +502,11 @@ class M3uParser:
             logging.info("Saved to file: %s" % filename)
 
         elif format == "csv":
-            if not self._trim:
+            if self._enforce_schema:
                 ndict_to_csv(self._streams_info, filename)
                 logging.info("Saved to file: %s" % filename)
             else:
-                logging.info("Saving to csv file not supported in trim mode !!!")
+                logging.info("Saving to csv file not supported if the schema was not forced (enforce_schema) !!!")
 
         elif format == "m3u":
             content = self._get_m3u_content()
