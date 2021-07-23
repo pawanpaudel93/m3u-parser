@@ -138,23 +138,19 @@ class M3uParser:
         except RuntimeError:
             self._loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self._loop)
-        try:
-            coros = (
-                self._parse_line(line_num)
-                for line_num in range(num_lines)
-                if "#EXTINF" in self._lines[line_num]
-            )
-            self._loop.run_until_complete(self._run_until_completed(coros))
-        except BaseException:
-            pass
-        else:
-            self._streams_info_backup = self._streams_info.copy()
-            self._loop.run_until_complete(asyncio.sleep(0))
-            while self._loop.is_running():
-                time.sleep(0.3)
-                if not self._loop.is_running():
-                    self._loop.close()
-                    break
+        coros = (
+            self._parse_line(line_num)
+            for line_num in range(num_lines)
+            if "#EXTINF" in self._lines[line_num]
+        )
+        self._loop.run_until_complete(self._run_until_completed(coros))
+        self._streams_info_backup = self._streams_info.copy()
+        self._loop.run_until_complete(asyncio.sleep(0))
+        while self._loop.is_running():
+            time.sleep(0.3)
+            if not self._loop.is_running():
+                self._loop.close()
+                break
         logging.info("Parsing completed !!!")
 
     async def _parse_line(self, line_num: int):
@@ -179,74 +175,69 @@ class M3uParser:
         except IndexError:
             pass
         if line_info and stream_link:
-            try:
-                info = {}
-                # Title
-                title = get_by_regex(self._title_regex, line_info)
-                if title or self._enforce_schema:
-                    info["name"] = title
-                # Logo
-                logo = get_by_regex(self._logo_regex, line_info)
-                if logo or self._enforce_schema:
-                    info["logo"] = logo
-                info["url"] = stream_link
-                # Category
-                category = get_by_regex(self._category_regex, line_info)
-                if category or self._enforce_schema:
-                    info["category"] = category
-                # TVG information
-                tvg_id = get_by_regex(self._tvg_id_regex, line_info)
-                tvg_name = get_by_regex(self._tvg_name_regex, line_info)
-                tvg_url = get_by_regex(self._tvg_url_regex, line_info)
-                if tvg_id or tvg_name or tvg_url or self._enforce_schema:
-                    tvg_info = {}
-                    for key, val in zip(
-                        ["id", "name", "url"], [tvg_id, tvg_name, tvg_url]
-                    ):
-                        if val or self._enforce_schema:
-                            tvg_info[key] = val
-                    if tvg_info or self._enforce_schema:
-                        info["tvg"] = tvg_info
-                # Country
-                country = get_by_regex(self._country_regex, line_info)
-                if country or self._enforce_schema:
-                    country_obj = pycountry.countries.get(
-                        alpha_2=country if country else ""
-                    )
-                    info["country"] = {
-                        "code": country,
-                        "name": country_obj.name if country_obj else None,
-                    }
-                # Language
-                language = get_by_regex(self._language_regex, line_info)
-                if language or self._enforce_schema:
-                    language_obj = pycountry.languages.get(
-                        name=language if language else ""
-                    )
-                    info["language"] = {
-                        "code": language_obj.alpha_3 if language_obj else None,
-                        "name": language,
-                    }
+            info = {}
+            # Title
+            title = get_by_regex(self._title_regex, line_info)
+            if title != None or self._enforce_schema:
+                info["name"] = title
+            # Logo
+            logo = get_by_regex(self._logo_regex, line_info)
+            if logo != None or self._enforce_schema:
+                info["logo"] = logo
+            info["url"] = stream_link
+            # Category
+            category = get_by_regex(self._category_regex, line_info)
+            if category != None or self._enforce_schema:
+                info["category"] = category
+            # TVG information
+            tvg_id = get_by_regex(self._tvg_id_regex, line_info)
+            tvg_name = get_by_regex(self._tvg_name_regex, line_info)
+            tvg_url = get_by_regex(self._tvg_url_regex, line_info)
+            if tvg_id != None or tvg_name != None or tvg_url != None or self._enforce_schema:
+                info["tvg"] = {}
+                for key, val in zip(
+                    ["id", "name", "url"], [tvg_id, tvg_name, tvg_url]
+                ):
+                    if val != None or self._enforce_schema:
+                        info["tvg"][key] = val
+            # Country
+            country = get_by_regex(self._country_regex, line_info)
+            if country != None or self._enforce_schema:
+                country_obj = pycountry.countries.get(
+                    alpha_2=country if country else ""
+                )
+                info["country"] = {
+                    "code": country,
+                    "name": country_obj.name if country_obj else None,
+                }
+            # Language
+            language = get_by_regex(self._language_regex, line_info)
+            if language != None or self._enforce_schema:
+                language_obj = pycountry.languages.get(
+                    name=language if language else ""
+                )
+                info["language"] = {
+                    "code": language_obj.alpha_3 if language_obj else None,
+                    "name": language,
+                }
 
-                timeout = aiohttp.ClientTimeout(total=self._timeout)
-                if self._check_live and status == "BAD":
-                    try:
-                        async with aiohttp.ClientSession() as session:
-                            async with session.request(
-                                "get",
-                                stream_link,
-                                headers=self._headers,
-                                timeout=timeout,
-                            ) as response:
-                                if response.status == 200:
-                                    status = "GOOD"
-                    except:
-                        pass
-                if self._check_live:
-                    info["status"] = status
-                self._streams_info.append(info)
-            except AttributeError:
-                pass
+            timeout = aiohttp.ClientTimeout(total=self._timeout)
+            if self._check_live and status == "BAD":
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.request(
+                            "get",
+                            stream_link,
+                            headers=self._headers,
+                            timeout=timeout,
+                        ) as response:
+                            if response.status == 200:
+                                status = "GOOD"
+                except:
+                    pass
+            if self._check_live:
+                info["status"] = status
+            self._streams_info.append(info)
 
     def filter_by(
         self,
@@ -452,18 +443,17 @@ class M3uParser:
             line = "#EXTINF:-1"
             if "tvg" in stream_info:
                 for key, value in stream_info["tvg"].items():
-                    if value:
-                        line += ' tvg-{}="{}"'.format(key, stream_info["tvg"][key])
-            if stream_info.get("logo"):
+                    line += ' tvg-{}="{}"'.format(key, value)
+            if "logo" in stream_info:
                 line += ' tvg-logo="{}"'.format(stream_info["logo"])
-            if stream_info.get("country", {}).get("code"):
+            if "country" in stream_info:
                 line += ' tvg-country="{}"'.format(stream_info["country"]["code"])
-            if stream_info.get("language", {}).get("name"):
-                line += ' tvg-language="{}"'.format(stream_info["language"]["name"])
-            if stream_info.get("category"):
+            if "language" in stream_info:
+                line += ' tvg-language="{}"'.format(stream_info["language"]["code"])
+            if "category" in stream_info:
                 line += ' group-title="{}"'.format(stream_info["category"])
-            if stream_info.get("name"):
-                line += "," + stream_info["name"]
+            if "name" in stream_info:
+                line += ',' + stream_info['name']
             content.append(line)
             content.append(stream_info["url"])
         return "\n".join(content)
