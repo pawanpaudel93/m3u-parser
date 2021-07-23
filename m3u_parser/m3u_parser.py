@@ -449,7 +449,7 @@ class M3uParser:
             if "country" in stream_info:
                 line += ' tvg-country="{}"'.format(stream_info["country"]["code"])
             if "language" in stream_info:
-                line += ' tvg-language="{}"'.format(stream_info["language"]["code"])
+                line += ' tvg-language="{}"'.format(stream_info["language"]["name"])
             if "category" in stream_info:
                 line += ' group-title="{}"'.format(stream_info["category"])
             if "name" in stream_info:
