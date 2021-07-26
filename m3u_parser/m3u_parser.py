@@ -441,18 +441,19 @@ class M3uParser:
         content = ["#EXTM3U"]
         for stream_info in self._streams_info:
             line = "#EXTINF:-1"
-            if "tvg" in stream_info:
+            if stream_info.get("tvg") != None:
                 for key, value in stream_info["tvg"].items():
-                    line += ' tvg-{}="{}"'.format(key, value)
-            if "logo" in stream_info:
+                    if value != None:
+                        line += ' tvg-{}="{}"'.format(key, value)
+            if stream_info.get("logo") != None:
                 line += ' tvg-logo="{}"'.format(stream_info["logo"])
-            if "country" in stream_info:
+            if stream_info.get("country") != None and stream_info["country"].get("code") != None:
                 line += ' tvg-country="{}"'.format(stream_info["country"]["code"])
-            if "language" in stream_info:
+            if stream_info.get("language") != None and stream_info["language"].get("name") != None:
                 line += ' tvg-language="{}"'.format(stream_info["language"]["name"])
-            if "category" in stream_info:
+            if stream_info.get("category") != None:
                 line += ' group-title="{}"'.format(stream_info["category"])
-            if "name" in stream_info:
+            if stream_info.get("name") != None:
                 line += ',' + stream_info['name']
             content.append(line)
             content.append(stream_info["url"])
