@@ -6,8 +6,8 @@ verify_ssl = true
 [dev-packages]
 twine = "*"
 pylint = "*"
-pdoc3 = "*"
 black = "*"
+isort = "*"
 
 [packages]
 pycountry = "*"

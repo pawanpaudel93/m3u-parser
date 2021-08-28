@@ -5,14 +5,15 @@ import json
 import logging
 import random
 import re
+import ssl
 import sys
+import time
+from typing import Union
+from urllib.parse import unquote, urlparse
+
 import aiohttp
 import pycountry
 import requests
-import time
-import ssl
-from typing import Union
-from urllib.parse import urlparse, unquote
 
 try:
     from helper import get_by_regex, ndict_to_csv, run_until_completed
@@ -20,9 +21,7 @@ except ModuleNotFoundError:
     from .helper import get_by_regex, ndict_to_csv, run_until_completed
 
 ssl.match_hostname = lambda cert, hostname: hostname == cert["subjectAltName"][0][1]
-logging.basicConfig(
-    stream=sys.stdout, level=logging.INFO, format="%(levelname)s: %(message)s"
-)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(levelname)s: %(message)s")
 
 
 class M3uParser:
@@ -67,18 +66,14 @@ class M3uParser:
             r"a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*["
             r"a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:/\S*)?$"
         )
-        self._file_regex = re.compile(
-            r"^[a-zA-Z]:\\((?:.*?\\)*).*\.[\d\w]{3,5}$|^(/[^/]*)+/?.[\d\w]{3,5}$"
-        )
+        self._file_regex = re.compile(r"^[a-zA-Z]:\\((?:.*?\\)*).*\.[\d\w]{3,5}$|^(/[^/]*)+/?.[\d\w]{3,5}$")
         self._tvg_name_regex = re.compile(r"tvg-name=\"(.*?)\"", flags=re.IGNORECASE)
         self._tvg_id_regex = re.compile(r"tvg-id=\"(.*?)\"", flags=re.IGNORECASE)
         self._logo_regex = re.compile(r"tvg-logo=\"(.*?)\"", flags=re.IGNORECASE)
         self._category_regex = re.compile(r"group-title=\"(.*?)\"", flags=re.IGNORECASE)
         self._title_regex = re.compile(r"(?!.*=\",?.*\")[,](.*?)$", flags=re.IGNORECASE)
         self._country_regex = re.compile(r"tvg-country=\"(.*?)\"", flags=re.IGNORECASE)
-        self._language_regex = re.compile(
-            r"tvg-language=\"(.*?)\"", flags=re.IGNORECASE
-        )
+        self._language_regex = re.compile(r"tvg-language=\"(.*?)\"", flags=re.IGNORECASE)
         self._tvg_url_regex = re.compile(r"tvg-url=\"(.*?)\"", flags=re.IGNORECASE)
 
     def parse_m3u(self, path: str, check_live: bool = True, enforce_schema: bool = True):
@@ -115,11 +110,7 @@ class M3uParser:
                 return
 
         # splitting contents into lines to parse them
-        self._lines = [
-            line.strip("\n\r")
-            for line in self._content.split("\n")
-            if line.strip("\n\r") != ""
-        ]
+        self._lines = [line.strip("\n\r") for line in self._content.split("\n") if line.strip("\n\r") != ""]
         if len(self._lines) > 0:
             self._parse_lines()
         else:
@@ -138,11 +129,7 @@ class M3uParser:
         except RuntimeError:
             self._loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self._loop)
-        coros = (
-            self._parse_line(line_num)
-            for line_num in range(num_lines)
-            if "#EXTINF" in self._lines[line_num]
-        )
+        coros = (self._parse_line(line_num) for line_num in range(num_lines) if "#EXTINF" in self._lines[line_num])
         self._loop.run_until_complete(self._run_until_completed(coros))
         self._streams_info_backup = self._streams_info.copy()
         self._loop.run_until_complete(asyncio.sleep(0))
@@ -160,14 +147,10 @@ class M3uParser:
         status = "BAD"
         try:
             for i in [1, 2]:
-                if self._lines[line_num + i] and re.search(
-                    self._url_regex, self._lines[line_num + i]
-                ):
+                if self._lines[line_num + i] and re.search(self._url_regex, self._lines[line_num + i]):
                     streams_link.append(self._lines[line_num + i])
                     break
-                elif self._lines[line_num + i] and re.search(
-                    self._file_regex, self._lines[line_num + i]
-                ):
+                elif self._lines[line_num + i] and re.search(self._file_regex, self._lines[line_num + i]):
                     status = "GOOD"
                     streams_link.append(self._lines[line_num + i])
                     break
@@ -195,17 +178,13 @@ class M3uParser:
             tvg_url = get_by_regex(self._tvg_url_regex, line_info)
             if tvg_id != None or tvg_name != None or tvg_url != None or self._enforce_schema:
                 info["tvg"] = {}
-                for key, val in zip(
-                    ["id", "name", "url"], [tvg_id, tvg_name, tvg_url]
-                ):
+                for key, val in zip(["id", "name", "url"], [tvg_id, tvg_name, tvg_url]):
                     if val != None or self._enforce_schema:
                         info["tvg"][key] = val
             # Country
             country = get_by_regex(self._country_regex, line_info)
             if country != None or self._enforce_schema:
-                country_obj = pycountry.countries.get(
-                    alpha_2=country if country else ""
-                )
+                country_obj = pycountry.countries.get(alpha_2=country if country else "")
                 info["country"] = {
                     "code": country,
                     "name": country_obj.name if country_obj else None,
@@ -213,9 +192,7 @@ class M3uParser:
             # Language
             language = get_by_regex(self._language_regex, line_info)
             if language != None or self._enforce_schema:
-                language_obj = pycountry.languages.get(
-                    name=language if language else ""
-                )
+                language_obj = pycountry.languages.get(name=language if language else "")
                 info["language"] = {
                     "code": language_obj.alpha_3 if language_obj else None,
                     "name": language,
@@ -269,9 +246,7 @@ class M3uParser:
             try:
                 key_0, key_1 = key.split(key_splitter)
             except ValueError:
-                logging.error(
-                    "Nested key must be in the format <key><key_splitter><nested_key>"
-                )
+                logging.error("Nested key must be in the format <key><key_splitter><nested_key>")
                 return
         if not filters:
             logging.error("Filter word/s missing!!!")
@@ -287,9 +262,7 @@ class M3uParser:
                         not_operator(
                             re.search(
                                 re.compile(fltr, flags=re.IGNORECASE),
-                                stream_info.get(key_0, {}).get(key_1, "")
-                                if nested_key
-                                else stream_info.get(key, ""),
+                                stream_info.get(key_0, {}).get(key_1, "") if nested_key else stream_info.get(key, ""),
                             )
                         )
                         for fltr in filters
@@ -377,16 +350,12 @@ class M3uParser:
             try:
                 key_0, key_1 = key.split(key_splitter)
             except ValueError:
-                logging.error(
-                    "Nested key must be in the format <key><key_splitter><nested_key>"
-                )
+                logging.error("Nested key must be in the format <key><key_splitter><nested_key>")
                 return
         try:
             self._streams_info = sorted(
                 self._streams_info,
-                key=lambda stream_info: stream_info[key_0][key_1]
-                if nested_key
-                else stream_info[key],
+                key=lambda stream_info: stream_info[key_0][key_1] if nested_key else stream_info[key],
                 reverse=not asc,
             )
         except KeyError:
@@ -477,13 +446,11 @@ class M3uParser:
             if ext in name:
                 return name
             else:
-                return name + f".{ext}"
+                return name + ".%s" % ext
 
         filename = with_extension(filename, format)
         if len(self._streams_info) == 0:
-            logging.info(
-                "Either parsing is not done or no stream info was found after parsing !!!"
-            )
+            logging.info("Either parsing is not done or no stream info was found after parsing !!!")
             return
         logging.info("Saving to file: %s" % filename)
         if format == "json":
@@ -510,7 +477,9 @@ class M3uParser:
 
 if __name__ == "__main__":
     url = "/home/pawan/Downloads/ru.m3u"
-    useragent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
+    useragent = (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
+    )
     parser = M3uParser(timeout=5, useragent=useragent)
     parser.parse_m3u(url)
     parser.remove_by_extension("mp4")
