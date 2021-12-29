@@ -9,16 +9,16 @@ import ssl
 import sys
 import time
 from typing import Union
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote
 
 import aiohttp
 import pycountry
 import requests
 
 try:
-    from helper import get_by_regex, ndict_to_csv, run_until_completed
+    from helper import get_by_regex, is_valid_url, ndict_to_csv, run_until_completed, streams_regex
 except ModuleNotFoundError:
-    from .helper import get_by_regex, ndict_to_csv, run_until_completed
+    from .helper import get_by_regex, is_valid_url, ndict_to_csv, run_until_completed, streams_regex
 
 ssl.match_hostname = lambda cert, hostname: hostname == cert["subjectAltName"][0][1]
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -58,14 +58,6 @@ class M3uParser:
         }
         self._check_live = False
         self._content = ""
-        self._url_regex = re.compile(
-            r"^(?:(?:https?|ftp)://)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!("
-            r"?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,"
-            r"3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){"
-            r"2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*["
-            r"a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*["
-            r"a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:/\S*)?$"
-        )
         self._file_regex = re.compile(r"^[a-zA-Z]:\\((?:.*?\\)*).*\.[\d\w]{3,5}$|^(/[^/]*)+/?.[\d\w]{3,5}$")
         self._tvg_name_regex = re.compile(r"tvg-name=\"(.*?)\"", flags=re.IGNORECASE)
         self._tvg_id_regex = re.compile(r"tvg-id=\"(.*?)\"", flags=re.IGNORECASE)
@@ -93,7 +85,7 @@ class M3uParser:
         """
         self._check_live = check_live
         self._enforce_schema = enforce_schema
-        if urlparse(path).scheme != "" or re.search(self._url_regex, path):
+        if is_valid_url(path):
             logging.info("Started parsing m3u link...")
             try:
                 self._content = requests.get(path).text
@@ -147,8 +139,11 @@ class M3uParser:
         status = "BAD"
         try:
             for i in [1, 2]:
-                if self._lines[line_num + i] and re.search(self._url_regex, self._lines[line_num + i]):
+                is_acestream = streams_regex.search(self._lines[line_num + i])
+                if self._lines[line_num + i] and (is_acestream or is_valid_url(self._lines[line_num + i])):
                     streams_link.append(self._lines[line_num + i])
+                    if is_acestream:
+                        status = "GOOD"
                     break
                 elif self._lines[line_num + i] and re.search(self._file_regex, self._lines[line_num + i]):
                     status = "GOOD"
