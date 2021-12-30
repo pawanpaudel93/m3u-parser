@@ -9,7 +9,6 @@ import ssl
 import sys
 import time
 from typing import Union
-from urllib.parse import unquote
 
 import aiohttp
 import pycountry
@@ -95,7 +94,7 @@ class M3uParser:
         else:
             logging.info("Started parsing m3u file...")
             try:
-                with open(unquote(path), errors="ignore") as fp:
+                with open(path, errors="ignore") as fp:
                     self._content = fp.read()
             except FileNotFoundError:
                 logging.error("File doesn't exist!!!")
