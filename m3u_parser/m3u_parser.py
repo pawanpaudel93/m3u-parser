@@ -94,7 +94,7 @@ class M3uParser:
         else:
             logging.info("Started parsing m3u file...")
             try:
-                with open(path, errors="ignore") as fp:
+                with open(path, encoding="utf-8", errors="ignore") as fp:
                     self._content = fp.read()
             except FileNotFoundError:
                 logging.error("File doesn't exist!!!")
@@ -449,7 +449,7 @@ class M3uParser:
         logging.info("Saving to file: %s" % filename)
         if format == "json":
             data = json.dumps(self._streams_info, indent=4)
-            with open(filename, "w") as fp:
+            with open(filename, mode="w", encoding="utf-8") as fp:
                 fp.write(data)
             logging.info("Saved to file: %s" % filename)
 
@@ -462,7 +462,7 @@ class M3uParser:
 
         elif format == "m3u":
             content = self._get_m3u_content()
-            with open(filename, "w") as fp:
+            with open(filename, mode="w", encoding="utf-8") as fp:
                 fp.write(content)
             logging.info("Saved to file: %s" % filename)
         else:
