@@ -1,16 +1,17 @@
 <h1 align="center">Welcome to m3u_parser</h1>
 <p>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.1.9-blue.svg?cacheSeconds=2592000" />
+  <img alt="Version" src="https://img.shields.io/badge/version-0.2.0-blue.svg?cacheSeconds=2592000" />
 </p>
 
-> A parser for m3u files. 
-It parses the contents of m3u file to a list of streams information which can be saved as a JSON/CSV file.
+> A parser for m3u files.
+> It parses the contents of m3u file to a list of streams information which can be saved as a JSON/CSV file.
 
->> Check [go-m3u-parser](https://github.com/pawanpaudel93/go-m3u-parser) and [ts-m3u-parser](https://github.com/pawanpaudel93/ts-m3u-parser) also.
+> > Check [go-m3u-parser](https://github.com/pawanpaudel93/go-m3u-parser) and [ts-m3u-parser](https://github.com/pawanpaudel93/ts-m3u-parser) also.
 
 ### 🏠 [Homepage](https://github.com/pawanpaudel93/m3u_parser)
 
 ## Install
+
 > pip install m3u-parser
 
 OR
@@ -30,14 +31,17 @@ parser.filter_by('status', 'GOOD')
 print(len(parser.get_list()))
 parser.to_file('pawan.json')
 ```
+
 ## Usage
+
 ```python
 from m3u_parser import M3uParser
 url = "/home/pawan/Downloads/ru.m3u"
 useragent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
 parser = M3uParser(timeout=5, useragent=useragent)
 ```
->Functions
+
+> Functions
 
 ```python
 def parse_m3u(self, path: str, check_live: bool = True, enforce_schema: bool = False):
@@ -54,7 +58,7 @@ def parse_m3u(self, path: str, check_live: bool = True, enforce_schema: bool = F
         :type check_live: bool
         :rtype: None
         """
-	
+
 def filter_by(self, key: str, filters: Union[str, list], key_splitter: str = "-", retrieve: bool = True, nested_key: bool = False):
         """Filter streams infomation.
 
@@ -72,13 +76,13 @@ def filter_by(self, key: str, filters: Union[str, list], key_splitter: str = "-"
         :type nested_key: bool
         :rtype: None
         """
-		
+
 def reset_operations(self):
         """Reset the stream information list to initial state before various operations.
 
         :rtype: None
         """
-		
+
 def remove_by_extension(self, extension: Union[str, list])
         """Remove stream information with certain extension/s.
 
@@ -88,7 +92,7 @@ def remove_by_extension(self, extension: Union[str, list])
         :type extension: str or list
         :rtype: None
         """
-		
+
 def retrieve_by_extension(self, extension: Union[str, list]):
         """Select only streams information with a certain extension/s.
 
@@ -98,7 +102,7 @@ def retrieve_by_extension(self, extension: Union[str, list]):
         :type extension: str or list
         :rtype: None
         """
-		
+
 def remove_by_category(self, filter_word: Union[str, list]):
         """Removes streams information with category containing a certain filter word/s.
 
@@ -108,7 +112,7 @@ def remove_by_category(self, filter_word: Union[str, list]):
         :type filter_word: str or list
         :rtype: None
         """
-		
+
 def retrieve_by_category(self, filter_word: Union[str, list]):
         """Retrieve only streams information that contains a certain filter word/s.
 
@@ -118,7 +122,7 @@ def retrieve_by_category(self, filter_word: Union[str, list]):
         :type filter_word: str or list
         :rtype: None
         """
-		
+
 def sort_by(self, key: str, key_splitter: str = "-", asc: bool = True, nested_key: bool = False):
         """Sort streams information.
 
@@ -134,7 +138,7 @@ def sort_by(self, key: str, key_splitter: str = "-", asc: bool = True, nested_ke
         :type nested_key: bool
         :rtype: None
         """
-		
+
 def get_json(self, indent: int = 4):
         """Get the streams information as json.
 
@@ -143,7 +147,7 @@ def get_json(self, indent: int = 4):
         :return: json of the streams_info list
         :rtype: json
         """
-		
+
 def get_list(self):
         """Get the parsed streams information list.
 
@@ -152,7 +156,7 @@ def get_list(self):
         :return: Streams information list
         :rtype: list
         """
-		
+
 def get_random_stream(self, random_shuffle: bool = True):
         """Return a random stream information
 
@@ -163,7 +167,7 @@ def get_random_stream(self, random_shuffle: bool = True):
         :return: A random stream info
         :rtype: dict
         """
-		
+
 def to_file(self, filename: str, format: str = "json"):
         """Save to file (CSV, JSON, or M3U)
 
@@ -181,11 +185,11 @@ def to_file(self, filename: str, format: str = "json"):
 
 👤 **Pawan Paudel**
 
-* Github: [@pawanpaudel93](https://github.com/pawanpaudel93)
+- Github: [@pawanpaudel93](https://github.com/pawanpaudel93)
 
 ## 🤝 Contributing
 
-Contributions, issues and feature requests are welcome!<br />Feel free to check [issues page](https://github.com/pawanpaudel93/m3u_parser/issues). 
+Contributions, issues and feature requests are welcome!<br />Feel free to check [issues page](https://github.com/pawanpaudel93/m3u_parser/issues).
 
 ## Show your support
 
