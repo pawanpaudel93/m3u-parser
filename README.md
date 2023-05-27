@@ -4,8 +4,6 @@
 
 A Python package for parsing m3u files and extracting streams information. The package allows you to convert the parsed information into JSON or CSV format and provides various filtering and sorting options.
 
-Check [go-m3u-parser](https://github.com/pawanpaudel93/go-m3u-parser), [rs-m3u-parser](https://github.com/pawanpaudel93/rs-m3u-parser) and [ts-m3u-parser](https://github.com/pawanpaudel93/ts-m3u-parser) also.
-
 ## Install
 
 Using pip,
@@ -202,6 +200,12 @@ Saves the streams information to a file in the specified format.
 ```python
 parser.to_file(filename, format="json")
 ```
+
+## Other Implementations
+
+- `Golang`: [go-m3u-parser](https://github.com/pawanpaudel93/go-m3u-parser)
+- `Rust`: [rs-m3u-parser](https://github.com/pawanpaudel93/rs-m3u-parser)
+- `Typescript`: [ts-m3u-parser](https://github.com/pawanpaudel93/ts-m3u-parser)
 
 ## Author
 
