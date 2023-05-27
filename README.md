@@ -1,184 +1,206 @@
-<h1 align="center">Welcome to m3u_parser</h1>
-<p>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.2.0-blue.svg?cacheSeconds=2592000" />
-</p>
+# m3u_parser
 
-> A parser for m3u files.
-> It parses the contents of m3u file to a list of streams information which can be saved as a JSON/CSV file.
+![version](https://img.shields.io/badge/version-0.2.0-blue.svg?cacheSeconds=2592000)
 
-> > Check [go-m3u-parser](https://github.com/pawanpaudel93/go-m3u-parser) and [ts-m3u-parser](https://github.com/pawanpaudel93/ts-m3u-parser) also.
+A Python package for parsing m3u files and extracting streams information. The package allows you to convert the parsed information into JSON or CSV format and provides various filtering and sorting options.
 
-### 🏠 [Homepage](https://github.com/pawanpaudel93/m3u_parser)
+Check [go-m3u-parser](https://github.com/pawanpaudel93/go-m3u-parser), [rs-m3u-parser](https://github.com/pawanpaudel93/rs-m3u-parser) and [ts-m3u-parser](https://github.com/pawanpaudel93/ts-m3u-parser) also.
 
 ## Install
 
-> pip install m3u-parser
+Using pip,
 
-OR
+```sh
+pip install m3u-parser
+```
 
-> pipenv install m3u-parser
+Or using pipenv,
 
-## Example
-
-```python
-from m3u_parser import M3uParser
-url = "/home/pawan/Downloads/ru.m3u"
-useragent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
-parser = M3uParser(timeout=5, useragent=useragent)
-parser.parse_m3u(url)
-parser.remove_by_extension('mp4')
-parser.filter_by('status', 'GOOD')
-print(len(parser.get_list()))
-parser.to_file('pawan.json')
+```sh
+pipenv install m3u-parser
 ```
 
 ## Usage
 
+Here is an example of how to use the M3uParser class:
+
 ```python
 from m3u_parser import M3uParser
+
 url = "/home/pawan/Downloads/ru.m3u"
 useragent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
+
+# Instantiate the parser
 parser = M3uParser(timeout=5, useragent=useragent)
+
+# Parse the m3u file
+parser.parse_m3u(url)
+
+# Remove by mp4 extension
+parser.remove_by_extension('mp4')
+
+# Filter streams by status
+parser.filter_by('status', 'GOOD')
+
+# Get the list of streams
+print(len(parser.get_list()))
+
+# Convert streams to JSON and save to a file
+parser.to_file('streams.json')
 ```
 
-> Functions
+## API Reference
+
+`M3uParser`
+The main class that provides the functionality to parse m3u files and manipulate the streams information.
+
+### Initialization
 
 ```python
-def parse_m3u(self, path: str, check_live: bool = True, enforce_schema: bool = False):
-        """Parses the content of local file/URL.
+parser = M3uParser(useragent=None, timeout=5)
+```
 
-        It downloads the file from the given url or use the local file path to get the content and parses line by line
-        to a structured format of streams information.
+- `useragent` (optional): The User-Agent string to use for HTTP requests. Default is a Chrome User-Agent string.
+- `timeout` (optional): The timeout value in seconds for HTTP requests. Default is 5 seconds.
 
-        :param path: Path can be a url or local filepath
-        :type path: str
-        :param enforce_schema: If the schema is forced, non-existing fields in a stream are filled with None/null. If it is not enforced, non-existing fields are ignored
-        :type enforce_schema: bool
-        :param check_live: To check if the stream links are working or not
-        :type check_live: bool
-        :rtype: None
-        """
+### Methods
 
-def filter_by(self, key: str, filters: Union[str, list], key_splitter: str = "-", retrieve: bool = True, nested_key: bool = False):
-        """Filter streams infomation.
+#### parse_m3u
 
-        It retrieves/removes stream information from streams information list using filter/s on key.
+`parse_m3u(path: str, check_live: bool = True, enforce_schema: bool = True) -> None`
 
-        :param key: Key can be single or nested. eg. key='name', key='language-name'
-        :type key: str
-        :param filters: List of filter/s to perform the retrieve or remove operation.
-        :type filters: str or list
-        :param key_splitter: A splitter to split the nested keys. Default: "-"
-        :type key_splitter: str
-        :param retrieve: True to retrieve and False for removing based on key.
-        :type retrieve: bool
-        :param nested_key: True/False for if the key is nested or not.
-        :type nested_key: bool
-        :rtype: None
-        """
+Parses the content of a local file or URL and extracts the streams information.
 
-def reset_operations(self):
-        """Reset the stream information list to initial state before various operations.
+- `path`: The path to the m3u file, which can be a local file path or a URL.
+- `check_live` (optional): Set to `True` to check if the stream links are working or not. Default is `True`.
+- `enforce_schema` (optional): If `True`, non-existing fields in a stream are filled with None. If `False`, non-existing fields are ignored. Default is `True`.
 
-        :rtype: None
-        """
+```python
+parser.parse_m3u(path, check_live=True, enforce_schema=True)
+```
 
-def remove_by_extension(self, extension: Union[str, list])
-        """Remove stream information with certain extension/s.
+#### filter_by
 
-        It removes stream information from streams information list based on extension/s provided.
+`filter_by(key: str, filters: Union[str, list], key_splitter: str = "-", retrieve: bool = True, nested_key: bool = False) -> None`
 
-        :param extension: Name of the extension like mp4, m3u8 etc. It can be a string or list of extension/s.
-        :type extension: str or list
-        :rtype: None
-        """
+Filters the streams information based on a key and filter/s.
 
-def retrieve_by_extension(self, extension: Union[str, list]):
-        """Select only streams information with a certain extension/s.
+- `key`: The key to filter on, can be a single key or nested key (e.g., "language-name").
+- `filters`: The filter word/s to perform the filtering operation.
+- `key_splitter` (optional): A splitter to split the nested keys. Default is "-".
+- `retrieve` (optional): Set to `True` to retrieve matching streams or `False` to remove matching streams. Default is `True`.
+- `nested_key` (optional): Set to `True` if the key is nested or `False` if it's not. Default is `False`.
 
-        It retrieves the stream information based on extension/s provided.
+```python
+parser.filter_by(key, filters, key_splitter="-", retrieve=True, nested_key=False)
+```
 
-        :param extension: Name of the extension like mp4, m3u8 etc. It can be a string or list of extension/s.
-        :type extension: str or list
-        :rtype: None
-        """
+#### reset_operations
 
-def remove_by_category(self, filter_word: Union[str, list]):
-        """Removes streams information with category containing a certain filter word/s.
+`reset_operations() -> None`
 
-        It removes stream information based on category using filter word/s.
+Resets the streams information list to the initial state before any filtering or sorting operations.
 
-        :param filter_word: It can be a string or list of filter word/s.
-        :type filter_word: str or list
-        :rtype: None
-        """
+```python
+parser.reset_operations()
+```
 
-def retrieve_by_category(self, filter_word: Union[str, list]):
-        """Retrieve only streams information that contains a certain filter word/s.
+#### remove_by_extension
 
-        It retrieves stream information based on category/categories.
+`remove_by_extension(extension: Union[str, list]) -> None`
 
-        :param filter_word: It can be a string or list of filter word/s.
-        :type filter_word: str or list
-        :rtype: None
-        """
+Removes stream information with a certain extension or extensions.
 
-def sort_by(self, key: str, key_splitter: str = "-", asc: bool = True, nested_key: bool = False):
-        """Sort streams information.
+- `extension`: The name of the extension(s) to remove, e.g., "mp4" or ["mp4", "m3u8"].
 
-        It sorts streams information list sorting by key in asc/desc order.
+```python
+parser.remove_by_extension(extension)
+```
 
-        :param key: It can be single or nested key.
-        :type key: str
-        :param key_splitter: A splitter to split the nested keys. Default: "-"
-        :type key_splitter: str
-        :param asc: Sort by asc or desc order
-        :type asc: bool
-        :param nested_key: True/False for if the key is nested or not.
-        :type nested_key: bool
-        :rtype: None
-        """
+#### retrieve_by_extension
 
-def get_json(self, indent: int = 4):
-        """Get the streams information as json.
+`retrieve_by_extension(extension: Union[str, list]) -> None`
 
-        :param indent: Int value for indentation.
-        :type indent: int
-        :return: json of the streams_info list
-        :rtype: json
-        """
+Retrieves only stream information with a certain extension or extensions.
 
-def get_list(self):
-        """Get the parsed streams information list.
+- `extension`: The name of the extension(s) to retrieve, e.g., "mp4" or ["mp4", "m3u8"].
 
-        It returns the streams information list.
+```python
+parser.retrieve_by_extension(extension)
+```
 
-        :return: Streams information list
-        :rtype: list
-        """
+#### remove_by_category
 
-def get_random_stream(self, random_shuffle: bool = True):
-        """Return a random stream information
+`remove_by_category(filter_word: Union[str, list]) -> None`
 
-        It returns a random stream information with shuffle if required.
+Removes stream information with a category containing certain filter word/s.
 
-        :param random_shuffle: To shuffle the streams information list before returning the random stream information.
-        :type random_shuffle: bool
-        :return: A random stream info
-        :rtype: dict
-        """
+- `filter_word`: The filter word/s to match against the category. It can be a string or a list of filter word/s.
 
-def to_file(self, filename: str, format: str = "json"):
-        """Save to file (CSV, JSON, or M3U)
+```python
+parser.remove_by_category(filter_word)
+```
 
-        It saves streams information as a CSV, JSON, or M3U file with a given filename and format parameters.
+#### retrieve_by_category
 
-        :param filename: Name of the file to save streams_info as.
-        :type filename: str
-        :param format: csv/json/m3u to save the streams_info.
-        :type format: str
-        :rtype: None
-        """
+`retrieve_by_category(filter_word: Union[str, list]) -> None`
+
+Selects only stream information with a category containing certain filter word/s.
+
+- `filter_word`: The filter word/s to match against the category. It can be a string or a list of filter word/s.
+
+```python
+parser.retrieve_by_category(filter_word)
+```
+
+#### sort_by
+
+`sort_by(key: str, key_splitter: str = "-", asc: bool = True, nested_key: bool = False) -> None`
+
+Sorts the streams information based on a key in ascending or descending order.
+
+- `key`: The key to sort on, can be a single key or nested key seperated by `key_splitter` (e.g., "language-name").
+- `key_splitter` (optional): A splitter used to split nested keys. Default is "-".
+- `asc` (optional): Set to `True` to sort in descending order, or `False` to sort in ascending order. Default is `False`.
+- `nested_key` (optional): Set to `True` if the key is nested or `False` if it's not. Default is `False`.
+
+```python
+parser.sort_by(key, key_splitter="-", asc=True, nested_key=False)
+```
+
+### get_json
+
+`get_json(indent: int = 4) -> str`
+
+Returns the streams information in JSON format.
+
+- indent (optional): If `indent` is a non-negative integer, then JSON array elements and object members will be pretty-printed with that indent level. An indent level of 0 will only insert newlines.
+
+```python
+json_data = parser.get_json(indent)
+```
+
+### get_list
+
+`get_list() -> list`
+
+Returns the list of streams information after any filtering or sorting operations.
+
+```python
+streams = parser.get_list()
+```
+
+### to_file
+
+`to_file(filename: str, format: str = "json") -> None`
+
+Saves the streams information to a file in the specified format.
+
+- `filename`: The name of the output file.
+- `format` (optional): The output file format, either "json" or "csv". Default is "json".
+
+```python
+parser.to_file(filename, format="json")
 ```
 
 ## Author
@@ -189,10 +211,10 @@ def to_file(self, filename: str, format: str = "json"):
 
 ## 🤝 Contributing
 
-Contributions, issues and feature requests are welcome!<br />Feel free to check [issues page](https://github.com/pawanpaudel93/m3u_parser/issues).
+Contributions, issues and feature requests are welcome! \ Feel free to check [issues page](https://github.com/pawanpaudel93/m3u_parser/issues).
 
 ## Show your support
 
 Give a ⭐️ if this project helped you!
 
-Copyright © 2020 [Pawan Paudel](https://github.com/pawanpaudel93).<br />
+Copyright © 2020 [Pawan Paudel](https://github.com/pawanpaudel93).
