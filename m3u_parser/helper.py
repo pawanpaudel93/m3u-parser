@@ -3,6 +3,7 @@ import csv
 import ipaddress
 import re
 from typing import Union
+import logging
 from urllib.parse import urlsplit, urlunsplit
 
 # URLValidator
@@ -193,3 +194,13 @@ def is_valid_url(value):
     except ValidationError:
         return False
     return True
+
+
+def setup_logger():
+    logger = logging.getLogger("m3u_parser")
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(levelname)s: %(message)s")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    return logger

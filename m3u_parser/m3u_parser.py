@@ -2,11 +2,9 @@
 
 import asyncio
 import json
-import logging
 import random
 import re
 import ssl
-import sys
 import time
 from typing import Union
 
@@ -15,12 +13,13 @@ import pycountry
 import requests
 
 try:
-    from helper import get_by_regex, is_valid_url, ndict_to_csv, run_until_completed, streams_regex
+    from helper import get_by_regex, is_valid_url, ndict_to_csv, run_until_completed, streams_regex, setup_logger
 except ModuleNotFoundError:
-    from .helper import get_by_regex, is_valid_url, ndict_to_csv, run_until_completed, streams_regex
+    from .helper import get_by_regex, is_valid_url, ndict_to_csv, run_until_completed, streams_regex, setup_logger
 
 ssl.match_hostname = lambda cert, hostname: hostname == cert["subjectAltName"][0][1]
-logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(levelname)s: %(message)s")
+
+logger = setup_logger()
 
 
 class M3uParser:
@@ -85,19 +84,19 @@ class M3uParser:
         self._check_live = check_live
         self._enforce_schema = enforce_schema
         if is_valid_url(path):
-            logging.info("Started parsing m3u link...")
+            logger.info("Started parsing m3u link...")
             try:
                 self._content = requests.get(path).text
             except:
-                logging.error("Cannot read anything from the url!!!")
+                logger.error("Cannot read anything from the url!!!")
                 return
         else:
-            logging.info("Started parsing m3u file...")
+            logger.info("Started parsing m3u file...")
             try:
                 with open(path, encoding="utf-8", errors="ignore") as fp:
                     self._content = fp.read()
             except FileNotFoundError:
-                logging.error("File doesn't exist!!!")
+                logger.error("File doesn't exist!!!")
                 return
 
         # splitting contents into lines to parse them
@@ -105,7 +104,7 @@ class M3uParser:
         if len(self._lines) > 0:
             self._parse_lines()
         else:
-            logging.error("No content to parse!!!")
+            logger.error("No content to parse!!!")
 
     @staticmethod
     async def _run_until_completed(tasks):
@@ -129,7 +128,7 @@ class M3uParser:
             if not self._loop.is_running():
                 self._loop.close()
                 break
-        logging.info("Parsing completed !!!")
+        logger.info("Parsing completed !!!")
 
     async def _parse_line(self, line_num: int):
         line_info = self._lines[line_num]
@@ -240,10 +239,10 @@ class M3uParser:
             try:
                 key_0, key_1 = key.split(key_splitter)
             except ValueError:
-                logging.error("Nested key must be in the format <key><key_splitter><nested_key>")
+                logger.error("Nested key must be in the format <key><key_splitter><nested_key>")
                 return
         if not filters:
-            logging.error("Filter word/s missing!!!")
+            logger.error("Filter word/s missing!!!")
             return
         if not isinstance(filters, list):
             filters = [filters]
@@ -265,7 +264,7 @@ class M3uParser:
                 )
             )
         except AttributeError:
-            logging.error("Key given is not nested !!!")
+            logger.error("Key given is not nested !!!")
 
     def reset_operations(self):
         """Reset the stream information list to initial state before various operations.
@@ -344,7 +343,7 @@ class M3uParser:
             try:
                 key_0, key_1 = key.split(key_splitter)
             except ValueError:
-                logging.error("Nested key must be in the format <key><key_splitter><nested_key>")
+                logger.error("Nested key must be in the format <key><key_splitter><nested_key>")
                 return
         try:
             self._streams_info = sorted(
@@ -353,7 +352,7 @@ class M3uParser:
                 reverse=not asc,
             )
         except KeyError:
-            logging.error("Key not found!!!")
+            logger.error("Key not found!!!")
 
     def get_json(self, indent: int = 4):
         """Get the streams information as json.
@@ -386,7 +385,7 @@ class M3uParser:
         :rtype: dict
         """
         if not len(self._streams_info):
-            logging.error("No streams information so could not get any random stream.")
+            logger.error("No streams information so could not get any random stream.")
             return
         if random_shuffle:
             random.shuffle(self._streams_info)
@@ -444,33 +443,33 @@ class M3uParser:
 
         filename = with_extension(filename, format)
         if len(self._streams_info) == 0:
-            logging.info("Either parsing is not done or no stream info was found after parsing !!!")
+            logger.info("Either parsing is not done or no stream info was found after parsing !!!")
             return
-        logging.info("Saving to file: %s" % filename)
+        logger.info("Saving to file: %s" % filename)
         if format == "json":
             data = json.dumps(self._streams_info, indent=4)
             with open(filename, mode="w", encoding="utf-8") as fp:
                 fp.write(data)
-            logging.info("Saved to file: %s" % filename)
+            logger.info("Saved to file: %s" % filename)
 
         elif format == "csv":
             if self._enforce_schema:
                 ndict_to_csv(self._streams_info, filename)
-                logging.info("Saved to file: %s" % filename)
+                logger.info("Saved to file: %s" % filename)
             else:
-                logging.info("Saving to csv file not supported if the schema was not forced (enforce_schema) !!!")
+                logger.info("Saving to csv file not supported if the schema was not forced (enforce_schema) !!!")
 
         elif format == "m3u":
             content = self._get_m3u_content()
             with open(filename, mode="w", encoding="utf-8") as fp:
                 fp.write(content)
-            logging.info("Saved to file: %s" % filename)
+            logger.info("Saved to file: %s" % filename)
         else:
-            logging.error("Unrecognised format!!!")
+            logger.error("Unrecognised format!!!")
 
 
 if __name__ == "__main__":
-    url = "/home/pawan/Downloads/ru.m3u"
+    url = "https://iptv-org.github.io/iptv/countries/np.m3u"
     useragent = (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
     )
