@@ -3,7 +3,7 @@ import os
 import sys
 from shutil import rmtree
 
-from setuptools import Command, find_packages, setup
+from setuptools import Command, setup
 
 # Package meta-data.
 NAME = "m3u_parser"
@@ -12,7 +12,7 @@ URL = "https://github.com/pawanpaudel93/m3u_parser"
 EMAIL = "pawanpaudel93@gmail.com"
 AUTHOR = "Pawan Paudel"
 REQUIRES_PYTHON = ">=3.0"
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 REQUIRED = ["requests", "asyncio", "aiohttp", "pycountry"]
 
