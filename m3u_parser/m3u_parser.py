@@ -11,6 +11,7 @@ from typing import Union
 import aiohttp
 import pycountry
 import requests
+import csv
 
 try:
     from helper import get_by_regex, is_valid_url, ndict_to_csv, run_until_completed, streams_regex, setup_logger
@@ -46,16 +47,15 @@ class M3uParser:
         self._streams_info = []
         self._streams_info_backup = []
         self._lines = []
-        self._timeout = timeout
+        self._timeout = aiohttp.ClientTimeout(total=timeout)
         self._loop = None
         self._enforce_schema = True
         self._headers = {
             "User-Agent": useragent
             if useragent
-            else "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36"
+            else "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
         }
         self._check_live = False
-        self._content = ""
         self._file_regex = re.compile(r"^[a-zA-Z]:\\((?:.*?\\)*).*\.[\d\w]{3,5}$|^(/[^/]*)+/?.[\d\w]{3,5}$")
         self._tvg_name_regex = re.compile(r"tvg-name=\"(.*?)\"", flags=re.IGNORECASE)
         self._tvg_id_regex = re.compile(r"tvg-id=\"(.*?)\"", flags=re.IGNORECASE)
@@ -66,68 +66,81 @@ class M3uParser:
         self._language_regex = re.compile(r"tvg-language=\"(.*?)\"", flags=re.IGNORECASE)
         self._tvg_url_regex = re.compile(r"tvg-url=\"(.*?)\"", flags=re.IGNORECASE)
 
-    def parse_m3u(self, path: str, check_live: bool = True, enforce_schema: bool = True):
-        """Parses the content of local file/URL.
-
-        It downloads the file from the given url or use the local file path to get the content and parses line by line
-        to a structured format of streams information.
-
-        :param path: Path can be a url or local filepath
-        :type path: str
-        :param enforce_schema: If the schema is forced, non-existing fields in a stream are filled with None/null. If it is not enforced, non-existing fields are ignored
-        :type enforce_schema: bool
-        :param check_live: To check if the stream links are working or not
-        :type check_live: bool
-        :rtype: None
-
-        """
-        self._check_live = check_live
-        self._enforce_schema = enforce_schema
+    def _read_content(self, path: str):
+        content = ""
         if is_valid_url(path):
             logger.info("Started parsing m3u link...")
             try:
-                self._content = requests.get(path).text
+                content = requests.get(path).text
             except:
-                logger.error("Cannot read anything from the url!!!")
-                return
+                raise Exception("Cannot read anything from the url!!!")
         else:
             logger.info("Started parsing m3u file...")
             try:
                 with open(path, encoding="utf-8", errors="ignore") as fp:
-                    self._content = fp.read()
+                    content = fp.read()
             except FileNotFoundError:
-                logger.error("File doesn't exist!!!")
-                return
-
-        # splitting contents into lines to parse them
-        self._lines = [line.strip("\n\r") for line in self._content.split("\n") if line.strip("\n\r") != ""]
-        if len(self._lines) > 0:
-            self._parse_lines()
-        else:
-            logger.error("No content to parse!!!")
+                raise Exception("File doesn't exist!!!")
+        return content
 
     @staticmethod
     async def _run_until_completed(tasks):
         for res in run_until_completed(tasks):
             _ = await res
 
-    def _parse_lines(self):
-        num_lines = len(self._lines)
-        self._streams_info.clear()
+    def _set_event_loop(self):
         try:
             self._loop = asyncio.get_event_loop()
         except RuntimeError:
             self._loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self._loop)
-        coros = (self._parse_line(line_num) for line_num in range(num_lines) if "#EXTINF" in self._lines[line_num])
-        self._loop.run_until_complete(self._run_until_completed(coros))
-        self._streams_info_backup = self._streams_info.copy()
-        self._loop.run_until_complete(asyncio.sleep(0))
+
+    def _close_loop(self):
         while self._loop.is_running():
             time.sleep(0.3)
             if not self._loop.is_running():
                 self._loop.close()
                 break
+
+    def _parse_lines(self):
+        num_lines = len(self._lines)
+        self._streams_info.clear()
+        self._set_event_loop()
+        coros = (self._parse_line(line_num) for line_num in range(num_lines) if "#EXTINF" in self._lines[line_num])
+        self._loop.run_until_complete(self._run_until_completed(coros))
+        self._loop.run_until_complete(asyncio.sleep(0))
+        self._streams_info_backup = self._streams_info.copy()
+        self._close_loop()
+        logger.info("Parsing completed !!!")
+
+    async def _get_status(self, stream_link):
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.request(
+                    "get",
+                    stream_link,
+                    headers=self._headers,
+                    timeout=self._timeout,
+                ) as response:
+                    if response.status == 200:
+                        return "GOOD"
+        except:
+            pass
+        return "BAD"
+
+    async def _check_status(self, index):
+        stream_info = self._streams_info[index]
+        stream_info["status"] = await self._get_status(stream_info.get("url"))
+        self._streams_info[index] = stream_info
+
+    def _check_streams_status(self):
+        if self._check_live:
+            self._set_event_loop()
+            coros = (self._check_status(index) for index in range(len(self._streams_info)))
+            self._loop.run_until_complete(self._run_until_completed(coros))
+            self._loop.run_until_complete(asyncio.sleep(0))
+            self._streams_info_backup = self._streams_info.copy()
+            self._close_loop()
         logger.info("Parsing completed !!!")
 
     async def _parse_line(self, line_num: int):
@@ -191,23 +204,141 @@ class M3uParser:
                     "name": language,
                 }
 
-            timeout = aiohttp.ClientTimeout(total=self._timeout)
             if self._check_live and status == "BAD":
-                try:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.request(
-                            "get",
-                            stream_link,
-                            headers=self._headers,
-                            timeout=timeout,
-                        ) as response:
-                            if response.status == 200:
-                                status = "GOOD"
-                except:
-                    pass
+                status = await self._get_status(stream_link)
             if self._check_live:
                 info["status"] = status
             self._streams_info.append(info)
+
+    @staticmethod
+    def _get_m3u_content(streams_info: list) -> str:
+        """Save the streams information list to m3u file.
+
+        It saves the streams information list to m3u file.
+
+        :rtype: None
+        """
+        if len(streams_info) == 0:
+            return ""
+        content = ["#EXTM3U"]
+        for stream_info in streams_info:
+            line = "#EXTINF:-1"
+            if stream_info.get("tvg") != None:
+                for key, value in stream_info["tvg"].items():
+                    if value != None:
+                        line += ' tvg-{}="{}"'.format(key, value)
+            if stream_info.get("logo") != None:
+                line += ' tvg-logo="{}"'.format(stream_info["logo"])
+            if stream_info.get("country") != None and stream_info["country"].get("code") != None:
+                line += ' tvg-country="{}"'.format(stream_info["country"]["code"])
+            if stream_info.get("language") != None and stream_info["language"].get("name") != None:
+                line += ' tvg-language="{}"'.format(stream_info["language"]["name"])
+            if stream_info.get("category") != None:
+                line += ' group-title="{}"'.format(stream_info["category"])
+            if stream_info.get("name") != None:
+                line += ',' + stream_info['name']
+            content.append(line)
+            content.append(stream_info["url"])
+        return "\n".join(content)
+
+    def parse_m3u(self, path: str, check_live: bool = True, enforce_schema: bool = True):
+        """Parses the content of local file/URL.
+
+        It downloads the file from the given url or use the local file path to get the content and parses line by line
+        to a structured format of streams information.
+
+        :param path: Path can be a url or local filepath
+        :type path: str
+        :param enforce_schema: If the schema is forced, non-existing fields in a stream are filled with None/null. If it is not enforced, non-existing fields are ignored
+        :type enforce_schema: bool
+        :param check_live: To check if the stream links are working or not
+        :type check_live: bool
+        :rtype: None
+
+        """
+        content = ""
+        self._check_live = check_live
+        self._enforce_schema = enforce_schema
+        try:
+            content = self._read_content(path)
+        except Exception as error:
+            logger.error(error)
+            return
+
+        # splitting contents into lines to parse them
+        self._lines = [line.strip("\n\r") for line in content.split("\n") if line.strip("\n\r") != ""]
+        if len(self._lines) > 0:
+            self._parse_lines()
+        else:
+            logger.error("No content to parse!!!")
+
+    def parse_json(self, path: str, check_live: bool = True, enforce_schema: bool = True):
+        """Parses the content of local JSON file/URL.
+
+        It downloads the file from the given url or use the local file path to get the structured format of streams information.
+
+        :param path: Path can be a url or local filepath
+        :type path: str
+        :param enforce_schema: If the schema is forced, non-existing fields in a stream are filled with None/null. If it is not enforced, non-existing fields are ignored
+        :type enforce_schema: bool
+        :param check_live: To check if the stream links are working or not
+        :type check_live: bool
+        :rtype: None
+
+        """
+        content = ""
+        self._check_live = check_live
+        self._enforce_schema = enforce_schema
+        try:
+            content = self._read_content(path)
+        except Exception as error:
+            logger.error(error)
+            return
+        self._streams_info = json.loads(content)
+        self._check_streams_status()
+
+    def parse_csv(self, path: str, check_live: bool = True, enforce_schema: bool = True):
+        """Parses the content of local CSV file/URL.
+
+        It downloads the file from the given url or use the local file path to get the structured format of streams information.
+
+        :param path: Path can be a url or local filepath
+        :type path: str
+        :param enforce_schema: If the schema is forced, non-existing fields in a stream are filled with None/null. If it is not enforced, non-existing fields are ignored
+        :type enforce_schema: bool
+        :param check_live: To check if the stream links are working or not
+        :type check_live: bool
+        :rtype: None
+
+        """
+        content = ""
+        self._check_live = check_live
+        self._enforce_schema = enforce_schema
+        try:
+            content = self._read_content(path)
+        except Exception as error:
+            logger.error(error)
+            return
+        reader = csv.DictReader(content.splitlines(), delimiter=",")
+        get_value = lambda row, key: row.get(key) or None
+        self._streams_info = [
+            {
+                "name": get_value(row, "name"),
+                "logo": get_value(row, "logo"),
+                "url": get_value(row, "url"),
+                "category": get_value(row, "category"),
+                "tvg": {
+                    "id": get_value(row, "tvg_id"),
+                    "name": get_value(row, "tvg_name"),
+                    "url": get_value(row, "tvg_url"),
+                },
+                "country": {"code": get_value(row, "country_code"), "name": get_value(row, "country_name")},
+                "language": {"code": get_value(row, "language_code"), "name": get_value(row, "language_name")},
+                "status": get_value(row, "status") or "BAD",
+            }
+            for row in reader
+        ]
+        self._check_streams_status()
 
     def filter_by(
         self,
@@ -391,36 +522,6 @@ class M3uParser:
             random.shuffle(self._streams_info)
         return random.choice(self._streams_info)
 
-    def _get_m3u_content(self) -> str:
-        """Save the streams information list to m3u file.
-
-        It saves the streams information list to m3u file.
-
-        :rtype: None
-        """
-        if len(self._streams_info) == 0:
-            return ""
-        content = ["#EXTM3U"]
-        for stream_info in self._streams_info:
-            line = "#EXTINF:-1"
-            if stream_info.get("tvg") != None:
-                for key, value in stream_info["tvg"].items():
-                    if value != None:
-                        line += ' tvg-{}="{}"'.format(key, value)
-            if stream_info.get("logo") != None:
-                line += ' tvg-logo="{}"'.format(stream_info["logo"])
-            if stream_info.get("country") != None and stream_info["country"].get("code") != None:
-                line += ' tvg-country="{}"'.format(stream_info["country"]["code"])
-            if stream_info.get("language") != None and stream_info["language"].get("name") != None:
-                line += ' tvg-language="{}"'.format(stream_info["language"]["name"])
-            if stream_info.get("category") != None:
-                line += ' group-title="{}"'.format(stream_info["category"])
-            if stream_info.get("name") != None:
-                line += ',' + stream_info['name']
-            content.append(line)
-            content.append(stream_info["url"])
-        return "\n".join(content)
-
     def to_file(self, filename: str, format: str = "json"):
         """Save to file (CSV, JSON, or M3U)
 
@@ -460,7 +561,7 @@ class M3uParser:
                 logger.info("Saving to csv file not supported if the schema was not forced (enforce_schema) !!!")
 
         elif format == "m3u":
-            content = self._get_m3u_content()
+            content = self._get_m3u_content(self._streams_info)
             with open(filename, mode="w", encoding="utf-8") as fp:
                 fp.write(content)
             logger.info("Saved to file: %s" % filename)
@@ -478,4 +579,4 @@ if __name__ == "__main__":
     parser.remove_by_extension("mp4")
     parser.filter_by("status", "GOOD")
     print(len(parser.get_list()))
-    parser.to_file("pawan.json")
+    parser.to_file("pawan.csv")
