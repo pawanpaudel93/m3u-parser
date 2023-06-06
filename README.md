@@ -77,6 +77,34 @@ Parses the content of a local file or URL and extracts the streams information.
 parser.parse_m3u(path, check_live=True, enforce_schema=True)
 ```
 
+#### parse_json
+
+`parse_json(path: str, check_live: bool = True, enforce_schema: bool = True) -> None`
+
+Parses the content of a local file or URL and extracts the streams information.
+
+- `path`: The path to the json file, which can be a local file path or a URL.
+- `check_live` (optional): Set to `True` to check if the stream links are working or not. Default is `True`.
+- `enforce_schema` (optional): If `True`, non-existing fields in a stream are filled with None. If `False`, non-existing fields are ignored. Default is `True`.
+
+```python
+parser.parse_m3u(path, check_live=True, enforce_schema=True)
+```
+
+#### parse_csv
+
+`parse_csv(path: str, check_live: bool = True, enforce_schema: bool = True) -> None`
+
+Parses the content of a local file or URL and extracts the streams information.
+
+- `path`: The path to the csv file, which can be a local file path or a URL.
+- `check_live` (optional): Set to `True` to check if the stream links are working or not. Default is `True`.
+- `enforce_schema` (optional): If `True`, non-existing fields in a stream are filled with None. If `False`, non-existing fields are ignored. Default is `True`.
+
+```python
+parser.parse_m3u(path, check_live=True, enforce_schema=True)
+```
+
 #### filter_by
 
 `filter_by(key: str, filters: Union[str, list], key_splitter: str = "-", retrieve: bool = True, nested_key: bool = False) -> None`
