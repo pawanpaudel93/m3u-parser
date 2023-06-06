@@ -17,3 +17,7 @@ All notable changes to this project will be documented in this file.
 ## [0.2.1] - 2023-06-05
 
 - Setup logger with package name
+
+## [0.3.0] - 2023-06-06
+
+- Add methods to parse content from CSV/JSON file/url
