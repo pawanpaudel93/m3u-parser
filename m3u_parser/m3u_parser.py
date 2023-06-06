@@ -66,16 +66,16 @@ class M3uParser:
         self._language_regex = re.compile(r"tvg-language=\"(.*?)\"", flags=re.IGNORECASE)
         self._tvg_url_regex = re.compile(r"tvg-url=\"(.*?)\"", flags=re.IGNORECASE)
 
-    def _read_content(self, path: str):
+    def _read_content(self, path: str, type="m3u"):
         content = ""
         if is_valid_url(path):
-            logger.info("Started parsing m3u link...")
+            logger.info(f"Started parsing {type} link...")
             try:
                 content = requests.get(path).text
             except:
                 raise Exception("Cannot read anything from the url!!!")
         else:
-            logger.info("Started parsing m3u file...")
+            logger.info(f"Started parsing {type} file...")
             try:
                 with open(path, encoding="utf-8", errors="ignore") as fp:
                     content = fp.read()
@@ -134,7 +134,7 @@ class M3uParser:
         self._streams_info[index] = stream_info
 
     def _check_streams_status(self):
-        if self._check_live:
+        if self._check_live and len(self._streams_info) > 0:
             self._set_event_loop()
             coros = (self._check_status(index) for index in range(len(self._streams_info)))
             self._loop.run_until_complete(self._run_until_completed(coros))
@@ -260,7 +260,7 @@ class M3uParser:
         self._check_live = check_live
         self._enforce_schema = enforce_schema
         try:
-            content = self._read_content(path)
+            content = self._read_content(path, "m3u")
         except Exception as error:
             logger.error(error)
             return
@@ -290,11 +290,30 @@ class M3uParser:
         self._check_live = check_live
         self._enforce_schema = enforce_schema
         try:
-            content = self._read_content(path)
+            content = self._read_content(path, "json")
         except Exception as error:
             logger.error(error)
             return
-        self._streams_info = json.loads(content)
+        streams_info = json.loads(content)
+        if streams_info and type(streams_info) == list and len(streams_info) > 0:
+            self._streams_info = [
+                {
+                    "name": stream_info.get("name"),
+                    "logo": stream_info.get("logo"),
+                    "url": stream_info.get("url"),
+                    "category": stream_info.get("category"),
+                    "tvg": {
+                        "id": stream_info.get("tvg_id"),
+                        "name": stream_info.get("tvg_name"),
+                        "url": stream_info.get("tvg_url"),
+                    },
+                    "country": {"code": stream_info.get("country_code"), "name": stream_info.get("country_name")},
+                    "language": {"code": stream_info.get("language_code"), "name": stream_info.get("language_name")},
+                    "status": stream_info.get("status") or "BAD",
+                }
+                for stream_info in streams_info
+                if type(stream_info) == dict and stream_info.get("url")
+            ]
         self._check_streams_status()
 
     def parse_csv(self, path: str, check_live: bool = True, enforce_schema: bool = True):
@@ -315,7 +334,7 @@ class M3uParser:
         self._check_live = check_live
         self._enforce_schema = enforce_schema
         try:
-            content = self._read_content(path)
+            content = self._read_content(path, "csv")
         except Exception as error:
             logger.error(error)
             return
@@ -337,6 +356,7 @@ class M3uParser:
                 "status": get_value(row, "status") or "BAD",
             }
             for row in reader
+            if get_value(row, "url")
         ]
         self._check_streams_status()
 
