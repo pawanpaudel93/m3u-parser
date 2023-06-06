@@ -88,7 +88,7 @@ Parses the content of a local file or URL and extracts the streams information.
 - `enforce_schema` (optional): If `True`, non-existing fields in a stream are filled with None. If `False`, non-existing fields are ignored. Default is `True`.
 
 ```python
-parser.parse_m3u(path, check_live=True, enforce_schema=True)
+parser.parse_json(path, check_live=True, enforce_schema=True)
 ```
 
 #### parse_csv
@@ -102,7 +102,7 @@ Parses the content of a local file or URL and extracts the streams information.
 - `enforce_schema` (optional): If `True`, non-existing fields in a stream are filled with None. If `False`, non-existing fields are ignored. Default is `True`.
 
 ```python
-parser.parse_m3u(path, check_live=True, enforce_schema=True)
+parser.parse_csv(path, check_live=True, enforce_schema=True)
 ```
 
 #### filter_by
