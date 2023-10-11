@@ -7,31 +7,106 @@ import re
 import ssl
 import time
 from typing import Union
+from dataclasses import dataclass, field
 
 import aiohttp
 import pycountry
 import requests
 import csv
 
+
 try:
-    from helper import get_by_regex, is_valid_url, ndict_to_csv, run_until_completed, streams_regex, setup_logger
+    from helper import (
+        get_by_regex,
+        is_valid_url,
+        ndict_to_csv,
+        run_until_completed,
+        setup_logger,
+        schemes,
+        default_useragent,
+    )
 except ModuleNotFoundError:
-    from .helper import get_by_regex, is_valid_url, ndict_to_csv, run_until_completed, streams_regex, setup_logger
+    from .helper import (
+        get_by_regex,
+        is_valid_url,
+        ndict_to_csv,
+        run_until_completed,
+        setup_logger,
+        schemes,
+        default_useragent,
+    )
 
 ssl.match_hostname = lambda cert, hostname: hostname == cert["subjectAltName"][0][1]
 
 logger = setup_logger()
 
 
+@dataclass
+class ParseConfig:
+    """
+    Configuration options for parsing M3U data.
+
+    Attributes:
+        schemes (list): A list of allowed URL schemes.
+        status_checker (dict): A dictionary mapping URL schemes to custom status checker functions.
+        check_live (bool): Indicates whether to check the status of live streams (default is True).
+        enforce_schema (bool): Indicates whether to enforce a specific schema for parsed data.
+            If enforced, non-existing fields in a stream are filled with None/null.
+            If not enforced, non-existing fields are ignored.
+    """
+
+    schemes: list = field(default_factory=list)
+    status_checker: dict = field(default_factory=dict)
+    check_live: bool = True
+    enforce_schema: bool = True
+
+
+@dataclass
+class FilterConfig:
+    """
+    Configuration options for filtering stream information.
+
+    Attributes:
+        key_splitter (str): A string used to split nested keys (default is "-").
+        retrieve (bool): Indicates whether to retrieve or remove based on the filter key (default is True).
+        nested_key (bool): Indicates whether the filter key is nested or not (default is False).
+    """
+
+    key_splitter: str = "-"
+    retrieve: bool = True
+    nested_key: bool = False
+
+
+@dataclass
+class SortConfig:
+    """
+    Configuration options for sorting stream information.
+
+    Attributes:
+        key_splitter (str): A string used to split nested keys (default is "-").
+        asc (bool): Indicates whether to sort in ascending (True) or descending (False) order (default is True).
+        nested_key (bool): Indicates whether the sort key is nested or not (default is False).
+    """
+
+    key_splitter: str = "-"
+    asc: bool = True
+    nested_key: bool = False
+
+
 class M3uParser:
     """A parser for m3u files.
 
-    It parses the contents of m3u file to a list of streams information which can be saved as a JSON/CSV file.
+    This class parses the contents of M3U files into a list of stream information, which can be saved as a JSON, CSV, or M3U file.
 
-    :Example
+    Args:
+        useragent (str, optional): User agent string for HTTP requests. Defaults to default_useragent.
+        timeout (int, optional): Timeout duration for HTTP requests in seconds. Defaults to 5.
+
+
+    Example:
 
     >>> url = "/home/pawan/Downloads/ru.m3u"
-    >>> useragent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
+    >>> useragent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
     >>> parser = M3uParser(timeout=5, useragent=useragent)
     >>> parser.parse_m3u(url)
     INFO: Started parsing m3u file...
@@ -43,18 +118,16 @@ class M3uParser:
     INFO: Saving to file...
     """
 
-    def __init__(self, useragent: str = None, timeout: int = 5):
+    def __init__(self, useragent: str = default_useragent, timeout: int = 5):
         self._streams_info = []
         self._streams_info_backup = []
         self._lines = []
+        self._parse_config = ParseConfig()
+        self._schemes = set(schemes)
         self._timeout = aiohttp.ClientTimeout(total=timeout)
         self._loop = None
         self._enforce_schema = True
-        self._headers = {
-            "User-Agent": useragent
-            if useragent
-            else "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-        }
+        self._headers = {"User-Agent": useragent}
         self._check_live = False
         self._file_regex = re.compile(r"^[a-zA-Z]:\\((?:.*?\\)*).*\.[\d\w]{3,5}$|^(/[^/]*)+/?.[\d\w]{3,5}$")
         self._tvg_name_regex = re.compile(r"tvg-name=\"(.*?)\"", flags=re.IGNORECASE)
@@ -130,7 +203,12 @@ class M3uParser:
 
     async def _check_status(self, index):
         stream_info = self._streams_info[index]
-        stream_info["status"] = await self._get_status(stream_info.get("url"))
+        stream_url = stream_info.get("url")
+        scheme = stream_url.split('://')[0].lower()
+        status_fn = self._parse_config.status_checker.get(scheme)
+        if status_fn is None or not callable(status_fn):
+            status_fn = self._get_status
+        stream_info["status"] = await status_fn(stream_url)
         self._streams_info[index] = stream_info
 
     def _check_streams_status(self):
@@ -150,11 +228,8 @@ class M3uParser:
         status = "BAD"
         try:
             for i in [1, 2]:
-                is_acestream = streams_regex.search(self._lines[line_num + i])
-                if self._lines[line_num + i] and (is_acestream or is_valid_url(self._lines[line_num + i])):
+                if self._lines[line_num + i] and (is_valid_url(self._lines[line_num + i], self._schemes)):
                     streams_link.append(self._lines[line_num + i])
-                    if is_acestream:
-                        status = "GOOD"
                     break
                 elif self._lines[line_num + i] and re.search(self._file_regex, self._lines[line_num + i]):
                     status = "GOOD"
@@ -205,7 +280,11 @@ class M3uParser:
                 }
 
             if self._check_live and status == "BAD":
-                status = await self._get_status(stream_link)
+                scheme = stream_link.split('://')[0].lower()
+                status_fn = self._parse_config.status_checker.get(scheme)
+                if status_fn is None or not callable(status_fn):
+                    status_fn = self._get_status
+                status = await status_fn(stream_link)
             if self._check_live:
                 info["status"] = status
             self._streams_info.append(info)
@@ -241,24 +320,33 @@ class M3uParser:
             content.append(stream_info["url"])
         return "\n".join(content)
 
-    def parse_m3u(self, path: str, check_live: bool = True, enforce_schema: bool = True):
-        """Parses the content of local file/URL.
+    def parse_m3u(
+        self,
+        path: str,
+        config: ParseConfig = ParseConfig(),
+    ):
+        """
+        Parses the content of a local M3U file or URL.
 
-        It downloads the file from the given url or use the local file path to get the content and parses line by line
-        to a structured format of streams information.
+        Downloads the file from the given URL or uses the local file path to parse its content.
+        It then processes the M3U file line by line, converting it into a structured format of streams information.
 
-        :param path: Path can be a url or local filepath
-        :type path: str
-        :param enforce_schema: If the schema is forced, non-existing fields in a stream are filled with None/null. If it is not enforced, non-existing fields are ignored
-        :type enforce_schema: bool
-        :param check_live: To check if the stream links are working or not
-        :type check_live: bool
-        :rtype: None
+        Args:
+            path (str): The file path or URL of the M3U file to be parsed.
+            config (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
 
+        Raises:
+            Exception: Raised if there is an issue reading the content from the URL or local file.
+
+        Returns:
+            None: The parsed streams information is stored internally and can be accessed using other methods.
         """
         content = ""
-        self._check_live = check_live
-        self._enforce_schema = enforce_schema
+        self._check_live = config.check_live
+        self._enforce_schema = config.enforce_schema
+        self._parse_config = config
+        self._schemes = set(schemes)
+        self._schemes.update(config.schemes)
         try:
             content = self._read_content(path, "m3u")
         except Exception as error:
@@ -272,23 +360,30 @@ class M3uParser:
         else:
             logger.error("No content to parse!!!")
 
-    def parse_json(self, path: str, check_live: bool = True, enforce_schema: bool = True):
-        """Parses the content of local JSON file/URL.
+    def parse_json(self, path: str, config: ParseConfig = ParseConfig()):
+        """
+        Parses the content of a local JSON file or JSON URL.
 
-        It downloads the file from the given url or use the local file path to get the structured format of streams information.
+        Downloads the JSON data from the given URL or uses the local file path to parse its content.
+        It expects the JSON data to be in a specific structure representing streams information.
+        The parsed information is processed and stored internally for further operations.
 
-        :param path: Path can be a url or local filepath
-        :type path: str
-        :param enforce_schema: If the schema is forced, non-existing fields in a stream are filled with None/null. If it is not enforced, non-existing fields are ignored
-        :type enforce_schema: bool
-        :param check_live: To check if the stream links are working or not
-        :type check_live: bool
-        :rtype: None
+        Args:
+            path (str): The file path or URL of the JSON file containing streams information.
+            config (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
 
+        Raises:
+            Exception: Raised if there is an issue reading the content from the URL or local file.
+
+        Returns:
+            None: The parsed streams information is stored internally and can be accessed using other methods.
         """
         content = ""
-        self._check_live = check_live
-        self._enforce_schema = enforce_schema
+        self._check_live = config.check_live
+        self._enforce_schema = config.enforce_schema
+        self._parse_config = config
+        self._schemes = set(schemes)
+        self._schemes.update(config.schemes)
         try:
             content = self._read_content(path, "json")
         except Exception as error:
@@ -316,23 +411,30 @@ class M3uParser:
             ]
         self._check_streams_status()
 
-    def parse_csv(self, path: str, check_live: bool = True, enforce_schema: bool = True):
-        """Parses the content of local CSV file/URL.
+    def parse_csv(self, path: str, config: ParseConfig = ParseConfig()):
+        """
+        Parses the content of a local CSV file or CSV URL.
 
-        It downloads the file from the given url or use the local file path to get the structured format of streams information.
+        Downloads the CSV data from the given URL or uses the local file path to parse its content.
+        It expects the CSV data to be in a specific structure representing streams information.
+        The parsed information is processed and stored internally for further operations.
 
-        :param path: Path can be a url or local filepath
-        :type path: str
-        :param enforce_schema: If the schema is forced, non-existing fields in a stream are filled with None/null. If it is not enforced, non-existing fields are ignored
-        :type enforce_schema: bool
-        :param check_live: To check if the stream links are working or not
-        :type check_live: bool
-        :rtype: None
+        Args:
+            path (str): The file path or URL of the CSV file containing streams information.
+            config (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
 
+        Raises:
+            Exception: Raised if there is an issue reading the content from the URL or local file.
+
+        Returns:
+            None: The parsed streams information is stored internally and can be accessed using other methods.
         """
         content = ""
-        self._check_live = check_live
-        self._enforce_schema = enforce_schema
+        self._check_live = config.check_live
+        self._enforce_schema = config.enforce_schema
+        self._parse_config = config
+        self._schemes = set(schemes)
+        self._schemes.update(config.schemes)
         try:
             content = self._read_content(path, "csv")
         except Exception as error:
@@ -360,35 +462,28 @@ class M3uParser:
         ]
         self._check_streams_status()
 
-    def filter_by(
-        self,
-        key: str,
-        filters: Union[str, list],
-        key_splitter: str = "-",
-        retrieve: bool = True,
-        nested_key: bool = False,
-    ):
-        """Filter streams infomation.
+    def filter_by(self, key: str, filters: Union[str, list], config: FilterConfig = FilterConfig()):
+        """
+        Filter streams information based on a specific key and filter criteria.
 
-        It retrieves/removes stream information from streams information list using filter/s on key.
-        If key is not found, it will not raise error and filtering is done silently.
+        Filters the internal streams information list based on the provided key and filter words.
+        If the key is not found or if the filter words do not match any stream information, the filtering is done silently.
 
-        :param key: Key can be single or nested. eg. key='name', key='language-name'
-        :type key: str
-        :param filters: List of filter/s to perform the retrieve or remove operation.
-        :type filters: str or list
-        :param key_splitter: A splitter to split the nested keys. Default: "-"
-        :type key_splitter: str
-        :param retrieve: True to retrieve and False for removing based on key.
-        :type retrieve: bool
-        :param nested_key: True/False for if the key is nested or not.
-        :type nested_key: bool
-        :rtype: None
+        Args:
+            key (str): The key to filter by. It can be a nested key separated by a splitter if 'nested_key' is True in config.
+            filters (Union[str, list]): Filter word or list of filter words to perform the filtering operation.
+            config (FilterConfig, optional): Configuration options for filtering. Defaults to FilterConfig().
+
+        Raises:
+            ValueError: Raised if 'nested_key' is True but the key is not in the correct format.
+
+        Returns:
+            None: The internal streams information list is updated based on the filtering criteria.
         """
         key_0, key_1 = [""] * 2
-        if nested_key:
+        if config.nested_key:
             try:
-                key_0, key_1 = key.split(key_splitter)
+                key_0, key_1 = key.split(config.key_splitter)
             except ValueError:
                 logger.error("Nested key must be in the format <key><key_splitter><nested_key>")
                 return
@@ -397,8 +492,8 @@ class M3uParser:
             return
         if not isinstance(filters, list):
             filters = [filters]
-        any_or_all = any if retrieve else all
-        not_operator = lambda x: x if retrieve else not x
+        any_or_all = any if config.retrieve else all
+        not_operator = lambda x: x if config.retrieve else not x
         try:
             self._streams_info = list(
                 filter(
@@ -406,7 +501,9 @@ class M3uParser:
                         not_operator(
                             re.search(
                                 re.compile(fltr, flags=re.IGNORECASE),
-                                stream_info.get(key_0, {}).get(key_1, "") if nested_key else stream_info.get(key, ""),
+                                stream_info.get(key_0, {}).get(key_1, "")
+                                if config.nested_key
+                                else stream_info.get(key, ""),
                             )
                         )
                         for fltr in filters
@@ -418,122 +515,149 @@ class M3uParser:
             logger.error("Key given is not nested !!!")
 
     def reset_operations(self):
-        """Reset the stream information list to initial state before various operations.
+        """
+        Reset the internal streams information list to its initial state before various operations were applied.
 
-        :rtype: None
+        Resets the streams information list to its original state before any filtering, sorting, or other operations were performed.
+        The original parsed streams information is restored for further operations.
+
+        Returns:
+            None: The internal streams information list is reset to its initial state.
         """
         self._streams_info = self._streams_info_backup.copy()
 
     def remove_by_extension(self, extension: Union[str, list]):
-        """Remove stream information with certain extension/s.
-
-        It removes stream information from streams information list based on extension/s provided.
-
-        :param extension: Name of the extension like mp4, m3u8 etc. It can be a string or list of extension/s.
-        :type extension: str or list
-        :rtype: None
         """
-        self.filter_by("url", extension, retrieve=False, nested_key=False)
+        Remove stream information with specific file extension(s).
+
+        Removes stream information from the internal streams information list based on the provided file extension(s).
+        If the stream URL ends with the specified extension(s), it will be removed from the list.
+
+        Args:
+            extension (Union[str, list]): File extension or list of file extensions to be removed from the streams information.
+
+        Returns:
+            None: The internal streams information list is updated, removing streams with the specified extension(s).
+        """
+        self.filter_by("url", extension, FilterConfig(retrieve=False))
 
     def retrieve_by_extension(self, extension: Union[str, list]):
-        """Select only streams information with a certain extension/s.
-
-        It retrieves the stream information based on extension/s provided.
-
-        :param extension: Name of the extension like mp4, m3u8 etc. It can be a string or list of extension/s.
-        :type extension: str or list
-        :rtype: None
         """
-        self.filter_by("url", extension, retrieve=True, nested_key=False)
+        Retrieve streams information with specific file extension(s).
+
+        Retrieves stream information from the internal streams information list based on the provided file extension(s).
+        Only streams with URLs ending with the specified extension(s) will be retained in the list.
+
+        Args:
+            extension (Union[str, list]): File extension or list of file extensions to be retrieved from the streams information.
+
+        Returns:
+            None: The internal streams information list is updated, retaining only streams with the specified extension(s).
+        """
+        self.filter_by("url", extension)
 
     def remove_by_category(self, filter_word: Union[str, list]):
-        """Removes streams information with category containing a certain filter word/s.
-
-        It removes stream information based on category using filter word/s.
-
-        :param filter_word: It can be a string or list of filter word/s.
-        :type filter_word: str or list
-        :rtype: None
         """
-        self.filter_by("category", filter_word, retrieve=False)
+        Remove streams information with specific category containing certain filter word(s).
+
+        Removes stream information from the internal streams information list based on the specified category filter word(s).
+        If the category of a stream contains the provided filter word(s), that stream will be removed from the list.
+
+        Args:
+            filter_word (Union[str, list]): Filter word or list of filter words to match against stream categories.
+
+        Returns:
+            None: The internal streams information list is updated, removing streams with specified category filter word(s).
+        """
+        self.filter_by("category", filter_word, FilterConfig(retrieve=False))
 
     def retrieve_by_category(self, filter_word: Union[str, list]):
-        """Retrieve only streams information that contains a certain filter word/s.
-
-        It retrieves stream information based on category/categories.
-
-        :param filter_word: It can be a string or list of filter word/s.
-        :type filter_word: str or list
-        :rtype: None
         """
-        self.filter_by("category", filter_word, retrieve=True)
+        Retrieve streams information with specific category containing certain filter word(s).
 
-    def sort_by(
-        self,
-        key: str,
-        key_splitter: str = "-",
-        asc: bool = True,
-        nested_key: bool = False,
-    ):
-        """Sort streams information.
+        Retrieves stream information from the internal streams information list based on the specified category filter word(s).
+        Only streams with categories containing the provided filter word(s) will be retained in the list.
 
-        It sorts streams information list sorting by key in asc/desc order.
+        Args:
+            filter_word (Union[str, list]): Filter word or list of filter words to match against stream categories.
 
-        :param key: It can be single or nested key.
-        :type key: str
-        :param key_splitter: A splitter to split the nested keys. Default: "-"
-        :type key_splitter: str
-        :param asc: Sort by asc or desc order
-        :type asc: bool
-        :param nested_key: True/False for if the key is nested or not.
-        :type nested_key: bool
-        :rtype: None
+        Returns:
+            None: The internal streams information list is updated, retaining only streams with specified category filter word(s).
+        """
+        self.filter_by("category", filter_word)
+
+    def sort_by(self, key: str, config: SortConfig = SortConfig()):
+        """
+        Sorts the internal streams information list based on a specific key.
+
+        Sorts the streams information list based on the provided key in ascending or descending order,
+        according to the specified configuration options.
+
+        Args:
+            key (str): The key to sort by. It can be a nested key separated by a splitter if 'nested_key' is True in config.
+            config (SortConfig, optional): Configuration options for sorting. Defaults to SortConfig().
+
+        Raises:
+            KeyError: Raised if the provided key is not found in the stream information.
+
+        Returns:
+            None: The internal streams information list is sorted based on the specified key and configuration.
         """
         key_0, key_1 = [""] * 2
-        if nested_key:
+        if config.nested_key:
             try:
-                key_0, key_1 = key.split(key_splitter)
+                key_0, key_1 = key.split(config.key_splitter)
             except ValueError:
                 logger.error("Nested key must be in the format <key><key_splitter><nested_key>")
                 return
         try:
             self._streams_info = sorted(
                 self._streams_info,
-                key=lambda stream_info: stream_info[key_0][key_1] if nested_key else stream_info[key],
-                reverse=not asc,
+                key=lambda stream_info: stream_info[key_0][key_1] if config.nested_key else stream_info[key],
+                reverse=not config.asc,
             )
         except KeyError:
             logger.error("Key not found!!!")
 
     def get_json(self, indent: int = 4):
-        """Get the streams information as json.
+        """
+        Get the streams information as a JSON string.
 
-        :param indent: Int value for indentation.
-        :type indent: int
-        :return: json of the streams_info list
-        :rtype: json
+        Converts the internal streams information list into a JSON string representation
+        with optional indentation for readability.
+
+        Args:
+            indent (int, optional): Number of spaces for JSON indentation. Defaults to 4.
+
+        Returns:
+            str: JSON string representation of the internal streams information list.
         """
         return json.dumps(self._streams_info, indent=indent)
 
     def get_list(self):
-        """Get the parsed streams information list.
+        """
+        Get the parsed streams information list.
 
-        It returns the streams information list.
+        Returns the internal streams information list that has been parsed, filtered, and processed
+        based on various operations performed on the original data source.
 
-        :return: Streams information list
-        :rtype: list
+        Returns:
+            list: Parsed streams information list containing dictionaries of stream details.
         """
         return self._streams_info
 
     def get_random_stream(self, random_shuffle: bool = True):
-        """Return a random stream information
+        """
+        Return a random stream information.
 
-        It returns a random stream information with shuffle if required.
+        Retrieves a randomly selected stream information from the internal streams information list.
+        Optionally, shuffles the list before selecting to provide a truly random choice.
 
-        :param random_shuffle: To shuffle the streams information list before returning the random stream information.
-        :type random_shuffle: bool
-        :return: A random stream info
-        :rtype: dict
+        Args:
+            random_shuffle (bool, optional): Whether to shuffle the streams information list before selecting. Defaults to True.
+
+        Returns:
+            dict or None: A randomly selected stream information dictionary, or None if no streams are available.
         """
         if not len(self._streams_info):
             logger.error("No streams information so could not get any random stream.")
@@ -543,15 +667,18 @@ class M3uParser:
         return random.choice(self._streams_info)
 
     def to_file(self, filename: str, format: str = "json"):
-        """Save to file (CSV, JSON, or M3U)
+        """
+        Save the parsed streams information to a file (CSV, JSON, or M3U).
 
-        It saves streams information as a CSV, JSON, or M3U file with a given filename and format parameters.
+        Saves the internal streams information list as a CSV, JSON, or M3U file with the specified filename and format.
+        The format is determined by the file extension or the optional 'format' parameter.
 
-        :param filename: Name of the file to save streams_info as.
-        :type filename: str
-        :param format: csv/json/m3u to save the streams_info.
-        :type format: str
-        :rtype: None
+        Args:
+            filename (str): Name of the file to save the streams information as.
+            format (str, optional): File format to save the streams information as (csv/json/m3u). Defaults to "json".
+
+        Returns:
+            None: The streams information is saved to the specified file in the specified format.
         """
         format = filename.split(".")[-1] if len(filename.split(".")) > 1 else format
 
@@ -587,16 +714,3 @@ class M3uParser:
             logger.info("Saved to file: %s" % filename)
         else:
             logger.error("Unrecognised format!!!")
-
-
-if __name__ == "__main__":
-    url = "https://iptv-org.github.io/iptv/countries/np.m3u"
-    useragent = (
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
-    )
-    parser = M3uParser(timeout=5, useragent=useragent)
-    parser.parse_m3u(url)
-    parser.remove_by_extension("mp4")
-    parser.filter_by("status", "GOOD")
-    print(len(parser.get_list()))
-    parser.to_file("pawan.csv")

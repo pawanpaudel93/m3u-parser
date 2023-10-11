@@ -38,7 +38,8 @@ regex = re.compile(
 )
 schemes = ['http', 'https', 'ftp', 'ftps']
 unsafe_chars = frozenset('\t\r\n')
-streams_regex = re.compile(r'acestream://[a-zA-Z0-9]+')
+
+default_useragent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
 
 
 # get matching regex from content
@@ -150,7 +151,7 @@ def is_valid_ipv6_address(ip_str):
     return True
 
 
-def is_valid_url(value):
+def is_valid_url(value, schemes=schemes):
     """
     Validate that the input can be represented as a URL.
     """
