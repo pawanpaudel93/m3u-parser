@@ -26,7 +26,7 @@ Here is an example of how to use the M3uParser class:
 from m3u_parser import M3uParser
 
 url = "/home/pawan/Downloads/ru.m3u"
-useragent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36"
+useragent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
 
 # Instantiate the parser
 parser = M3uParser(timeout=5, useragent=useragent)
@@ -55,70 +55,65 @@ The main class that provides the functionality to parse m3u files and manipulate
 ### Initialization
 
 ```python
-parser = M3uParser(useragent=None, timeout=5)
+parser = M3uParser(useragent=default_useragent, timeout=5)
 ```
 
-- `useragent` (optional): The User-Agent string to use for HTTP requests. Default is a Chrome User-Agent string.
-- `timeout` (optional): The timeout value in seconds for HTTP requests. Default is 5 seconds.
+- `useragent` (optional): User agent string for HTTP requests. Default is a Chrome User-Agent string.
+- `timeout` (optional): Timeout duration for HTTP requests in seconds. Defaults to 5.
 
 ### Methods
 
 #### parse_m3u
 
-`parse_m3u(path: str, check_live: bool = True, enforce_schema: bool = True) -> None`
+`parse_m3u(path: str, config: ParseConfig = ParseConfig()) -> None`
 
 Parses the content of a local file or URL and extracts the streams information.
 
 - `path`: The path to the m3u file, which can be a local file path or a URL.
-- `check_live` (optional): Set to `True` to check if the stream links are working or not. Default is `True`.
-- `enforce_schema` (optional): If `True`, non-existing fields in a stream are filled with None. If `False`, non-existing fields are ignored. Default is `True`.
+- `config` (optional): Configuration options for parsing. Defaults to ParseConfig().
 
 ```python
-parser.parse_m3u(path, check_live=True, enforce_schema=True)
+parser.parse_m3u(path, ParseConfig(check_live=True, enforce_schema=True))
 ```
 
 #### parse_json
 
-`parse_json(path: str, check_live: bool = True, enforce_schema: bool = True) -> None`
+`parse_json(path: str, config: ParseConfig = ParseConfig()) -> None`
 
 Parses the content of a local file or URL and extracts the streams information.
 
 - `path`: The path to the json file, which can be a local file path or a URL.
-- `check_live` (optional): Set to `True` to check if the stream links are working or not. Default is `True`.
-- `enforce_schema` (optional): If `True`, non-existing fields in a stream are filled with None. If `False`, non-existing fields are ignored. Default is `True`.
+- `config` (optional): Configuration options for parsing. Defaults to ParseConfig().
 
 ```python
-parser.parse_json(path, check_live=True, enforce_schema=True)
+parser.parse_json(path, ParseConfig(check_live=True, enforce_schema=True))
 ```
 
 #### parse_csv
 
-`parse_csv(path: str, check_live: bool = True, enforce_schema: bool = True) -> None`
+`parse_csv(path: str, config: ParseConfig = ParseConfig()) -> None`
 
 Parses the content of a local file or URL and extracts the streams information.
 
 - `path`: The path to the csv file, which can be a local file path or a URL.
-- `check_live` (optional): Set to `True` to check if the stream links are working or not. Default is `True`.
-- `enforce_schema` (optional): If `True`, non-existing fields in a stream are filled with None. If `False`, non-existing fields are ignored. Default is `True`.
+- `config` (optional): Configuration options for parsing. Defaults to ParseConfig().
 
 ```python
-parser.parse_csv(path, check_live=True, enforce_schema=True)
+parser.parse_csv(path, ParseConfig(check_live=True, enforce_schema=True))
 ```
 
 #### filter_by
 
-`filter_by(key: str, filters: Union[str, list], key_splitter: str = "-", retrieve: bool = True, nested_key: bool = False) -> None`
+`filter_by(key: str, filters: Union[str, list], config: FilterConfig = FilterConfig()) -> None`
 
 Filters the streams information based on a key and filter/s.
 
 - `key`: The key to filter on, can be a single key or nested key (e.g., "language-name").
 - `filters`: The filter word/s to perform the filtering operation.
-- `key_splitter` (optional): A splitter to split the nested keys. Default is "-".
-- `retrieve` (optional): Set to `True` to retrieve matching streams or `False` to remove matching streams. Default is `True`.
-- `nested_key` (optional): Set to `True` if the key is nested or `False` if it's not. Default is `False`.
+- `config` (optional): Configuration options for filtering. Defaults to FilterConfig().
 
 ```python
-parser.filter_by(key, filters, key_splitter="-", retrieve=True, nested_key=False)
+parser.filter_by(key, filters, FilterConfig(key_splitter="-", retrieve=True, nested_key=False))
 ```
 
 #### reset_operations
@@ -181,17 +176,15 @@ parser.retrieve_by_category(filter_word)
 
 #### sort_by
 
-`sort_by(key: str, key_splitter: str = "-", asc: bool = True, nested_key: bool = False) -> None`
+`sort_by(key: str, config: SortConfig = SortConfig()) -> None`
 
 Sorts the streams information based on a key in ascending or descending order.
 
 - `key`: The key to sort on, can be a single key or nested key seperated by `key_splitter` (e.g., "language-name").
-- `key_splitter` (optional): A splitter used to split nested keys. Default is "-".
-- `asc` (optional): Set to `True` to sort in descending order, or `False` to sort in ascending order. Default is `False`.
-- `nested_key` (optional): Set to `True` if the key is nested or `False` if it's not. Default is `False`.
+- `config` (optional): Configuration options for sorting. Defaults to SortConfig().
 
 ```python
-parser.sort_by(key, key_splitter="-", asc=True, nested_key=False)
+parser.sort_by(key, SortConfig(key_splitter="-", asc=True, nested_key=False))
 ```
 
 ### get_json
@@ -228,6 +221,36 @@ Saves the streams information to a file in the specified format.
 ```python
 parser.to_file(filename, format="json")
 ```
+
+`ParseConfig`
+Configuration options for parsing M3U data.
+
+Attributes:
+
+- schemes (list): A list of allowed URL schemes.
+- status_checker (dict): A dictionary mapping URL schemes to custom status checker functions.
+- check_live (bool): Indicates whether to check the status of live streams (default is True).
+- enforce_schema (bool): Indicates whether to enforce a specific schema for parsed data.
+    If enforced, non-existing fields in a stream are filled with None/null.
+    If not enforced, non-existing fields are ignored.
+
+`FilterConfig`
+Configuration options for filtering stream information.
+
+Attributes:
+
+- key_splitter (str): A string used to split nested keys (default is "-").
+- retrieve (bool): Indicates whether to retrieve or remove based on the filter key (default is True).
+- nested_key (bool): Indicates whether the filter key is nested or not (default is False).
+
+`SortConfig`
+Configuration options for sorting stream information.
+
+Attributes:
+
+- key_splitter (str): A string used to split nested keys (default is "-").
+- asc (bool): Indicates whether to sort in ascending (True) or descending (False) order (default is True).
+- nested_key (bool): Indicates whether the sort key is nested or not (default is False).
 
 ## Other Implementations
 
