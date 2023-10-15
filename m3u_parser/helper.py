@@ -1,9 +1,9 @@
 import asyncio
 import csv
 import ipaddress
+import logging
 import re
 from typing import Union
-import logging
 from urllib.parse import urlsplit, urlunsplit
 
 # URLValidator

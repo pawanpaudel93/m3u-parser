@@ -1,64 +1,38 @@
 #!/usr/bin/env python3
 
 import asyncio
+import csv
 import json
 import random
 import re
 import ssl
 import time
-from typing import Union
 from dataclasses import dataclass, field
+from typing import Union
 
 import aiohttp
 import pycountry
 import requests
-import csv
 
-
-try:
-    from helper import (
-        get_by_regex,
-        is_valid_url,
-        ndict_to_csv,
-        run_until_completed,
-        setup_logger,
-        schemes,
-        default_useragent,
-    )
-except ModuleNotFoundError:
-    from .helper import (
-        get_by_regex,
-        is_valid_url,
-        ndict_to_csv,
-        run_until_completed,
-        setup_logger,
-        schemes,
-        default_useragent,
-    )
-
-
-try:
-    from exceptions import (
-        UrlReadException,
-        NoStreamsException,
-        NestedKeyException,
-        KeyNotFoundException,
-        FiltersMissingException,
-        SavingNotSupportedException,
-        UnrecognizedFormatException,
-        NoContentToParseException,
-    )
-except ModuleNotFoundError:
-    from .exceptions import (
-        UrlReadException,
-        NoStreamsException,
-        NestedKeyException,
-        KeyNotFoundException,
-        FiltersMissingException,
-        SavingNotSupportedException,
-        UnrecognizedFormatException,
-        NoContentToParseException,
-    )
+from .exceptions import (
+    FiltersMissingException,
+    KeyNotFoundException,
+    NestedKeyException,
+    NoContentToParseException,
+    NoStreamsException,
+    SavingNotSupportedException,
+    UnrecognizedFormatException,
+    UrlReadException,
+)
+from .helper import (
+    default_useragent,
+    get_by_regex,
+    is_valid_url,
+    ndict_to_csv,
+    run_until_completed,
+    schemes,
+    setup_logger,
+)
 
 ssl.match_hostname = lambda cert, hostname: hostname == cert["subjectAltName"][0][1]
 

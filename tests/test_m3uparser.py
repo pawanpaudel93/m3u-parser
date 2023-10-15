@@ -1,12 +1,14 @@
-import sys, os, pytest
+import os
+import sys
 from pathlib import Path
+
+import pytest
 
 file = Path(__file__).resolve()
 package_root_directory = file.parents[1]
 sys.path.append(str(package_root_directory))
 
-from m3u_parser import M3uParser, ParseConfig, SortConfig, FilterConfig
-
+from m3u_parser import FilterConfig, M3uParser, ParseConfig, SortConfig
 
 # Sample M3U content for testing
 SAMPLE_M3U_CONTENT = """
