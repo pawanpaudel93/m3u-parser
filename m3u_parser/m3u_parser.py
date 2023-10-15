@@ -36,6 +36,30 @@ except ModuleNotFoundError:
         default_useragent,
     )
 
+
+try:
+    from exceptions import (
+        UrlReadException,
+        NoStreamsException,
+        NestedKeyException,
+        KeyNotFoundException,
+        FiltersMissingException,
+        SavingNotSupportedException,
+        UnrecognizedFormatException,
+        NoContentToParseException,
+    )
+except ModuleNotFoundError:
+    from .exceptions import (
+        UrlReadException,
+        NoStreamsException,
+        NestedKeyException,
+        KeyNotFoundException,
+        FiltersMissingException,
+        SavingNotSupportedException,
+        UnrecognizedFormatException,
+        NoContentToParseException,
+    )
+
 ssl.match_hostname = lambda cert, hostname: hostname == cert["subjectAltName"][0][1]
 
 logger = setup_logger()
@@ -127,7 +151,7 @@ class M3uParser:
         self._timeout = aiohttp.ClientTimeout(total=timeout)
         self._loop = None
         self._enforce_schema = True
-        self._headers = {"User-Agent": useragent}
+        self._headers = {"User-Agent": useragent if useragent else default_useragent}
         self._check_live = False
         self._file_regex = re.compile(r"^[a-zA-Z]:\\((?:.*?\\)*).*\.[\d\w]{3,5}$|^(/[^/]*)+/?.[\d\w]{3,5}$")
         self._tvg_name_regex = re.compile(r"tvg-name=\"(.*?)\"", flags=re.IGNORECASE)
@@ -146,14 +170,14 @@ class M3uParser:
             try:
                 content = requests.get(path).text
             except:
-                raise Exception("Cannot read anything from the url!!!")
+                raise UrlReadException("Cannot read anything from the url.")
         else:
             logger.info(f"Started parsing {type} file...")
             try:
                 with open(path, encoding="utf-8", errors="ignore") as fp:
                     content = fp.read()
             except FileNotFoundError:
-                raise Exception("File doesn't exist!!!")
+                raise FileNotFoundError("File doesn't exist.")
         return content
 
     @staticmethod
@@ -184,7 +208,7 @@ class M3uParser:
         self._loop.run_until_complete(asyncio.sleep(0))
         self._streams_info_backup = self._streams_info.copy()
         self._close_loop()
-        logger.info("Parsing completed !!!")
+        logger.info("Parsing completed.")
 
     async def _get_status(self, stream_link):
         try:
@@ -219,7 +243,7 @@ class M3uParser:
             self._loop.run_until_complete(asyncio.sleep(0))
             self._streams_info_backup = self._streams_info.copy()
             self._close_loop()
-        logger.info("Parsing completed !!!")
+        logger.info("Parsing completed.")
 
     async def _parse_line(self, line_num: int):
         line_info = self._lines[line_num]
@@ -347,18 +371,15 @@ class M3uParser:
         self._parse_config = config
         self._schemes = set(schemes)
         self._schemes.update(config.schemes)
-        try:
-            content = self._read_content(path, "m3u")
-        except Exception as error:
-            logger.error(error)
-            return
+
+        content = self._read_content(path, "m3u")
 
         # splitting contents into lines to parse them
         self._lines = [line.strip("\n\r") for line in content.split("\n") if line.strip("\n\r") != ""]
         if len(self._lines) > 0:
             self._parse_lines()
         else:
-            logger.error("No content to parse!!!")
+            raise NoContentToParseException("No content to parse.")
 
     def parse_json(self, path: str, config: ParseConfig = ParseConfig()):
         """
@@ -384,11 +405,9 @@ class M3uParser:
         self._parse_config = config
         self._schemes = set(schemes)
         self._schemes.update(config.schemes)
-        try:
-            content = self._read_content(path, "json")
-        except Exception as error:
-            logger.error(error)
-            return
+
+        content = self._read_content(path, "json")
+
         streams_info = json.loads(content)
         if streams_info and type(streams_info) == list and len(streams_info) > 0:
             self._streams_info = [
@@ -435,11 +454,9 @@ class M3uParser:
         self._parse_config = config
         self._schemes = set(schemes)
         self._schemes.update(config.schemes)
-        try:
-            content = self._read_content(path, "csv")
-        except Exception as error:
-            logger.error(error)
-            return
+
+        content = self._read_content(path, "csv")
+
         reader = csv.DictReader(content.splitlines(), delimiter=",")
         get_value = lambda row, key: row.get(key) or None
         self._streams_info = [
@@ -485,11 +502,9 @@ class M3uParser:
             try:
                 key_0, key_1 = key.split(config.key_splitter)
             except ValueError:
-                logger.error("Nested key must be in the format <key><key_splitter><nested_key>")
-                return
+                raise NestedKeyException("Nested key must be in the format <key><key_splitter><nested_key>.")
         if not filters:
-            logger.error("Filter word/s missing!!!")
-            return
+            raise FiltersMissingException("Filter word/s missing.")
         if not isinstance(filters, list):
             filters = [filters]
         any_or_all = any if config.retrieve else all
@@ -501,9 +516,9 @@ class M3uParser:
                         not_operator(
                             re.search(
                                 re.compile(fltr, flags=re.IGNORECASE),
-                                stream_info.get(key_0, {}).get(key_1, "")
+                                (stream_info.get(key_0, {}).get(key_1, "") or "")
                                 if config.nested_key
-                                else stream_info.get(key, ""),
+                                else (stream_info.get(key, "") or ""),
                             )
                         )
                         for fltr in filters
@@ -512,7 +527,7 @@ class M3uParser:
                 )
             )
         except AttributeError:
-            logger.error("Key given is not nested !!!")
+            raise NestedKeyException("Key given is not nested.")
 
     def reset_operations(self):
         """
@@ -608,8 +623,7 @@ class M3uParser:
             try:
                 key_0, key_1 = key.split(config.key_splitter)
             except ValueError:
-                logger.error("Nested key must be in the format <key><key_splitter><nested_key>")
-                return
+                raise NestedKeyException("Nested key must be in the format <key><key_splitter><nested_key>.")
         try:
             self._streams_info = sorted(
                 self._streams_info,
@@ -617,7 +631,7 @@ class M3uParser:
                 reverse=not config.asc,
             )
         except KeyError:
-            logger.error("Key not found!!!")
+            raise KeyNotFoundException("Key not found.")
 
     def get_json(self, indent: int = 4):
         """
@@ -660,8 +674,7 @@ class M3uParser:
             dict or None: A randomly selected stream information dictionary, or None if no streams are available.
         """
         if not len(self._streams_info):
-            logger.error("No streams information so could not get any random stream.")
-            return
+            raise NoStreamsException("No streams information so could not get any random stream.")
         if random_shuffle:
             random.shuffle(self._streams_info)
         return random.choice(self._streams_info)
@@ -691,8 +704,7 @@ class M3uParser:
 
         filename = with_extension(filename, format)
         if len(self._streams_info) == 0:
-            logger.info("Either parsing is not done or no stream info was found after parsing !!!")
-            return
+            raise NoStreamsException("Either parsing is not done or no stream info was found after parsing.")
         logger.info("Saving to file: %s" % filename)
         if format == "json":
             data = json.dumps(self._streams_info, indent=4)
@@ -705,7 +717,9 @@ class M3uParser:
                 ndict_to_csv(self._streams_info, filename)
                 logger.info("Saved to file: %s" % filename)
             else:
-                logger.info("Saving to csv file not supported if the schema was not forced (enforce_schema) !!!")
+                raise SavingNotSupportedException(
+                    "Saving to csv file not supported if the schema was not forced (enforce_schema)."
+                )
 
         elif format == "m3u":
             content = self._get_m3u_content(self._streams_info)
@@ -713,4 +727,4 @@ class M3uParser:
                 fp.write(content)
             logger.info("Saved to file: %s" % filename)
         else:
-            logger.error("Unrecognised format!!!")
+            raise UnrecognizedFormatException("Unrecognised format.")
