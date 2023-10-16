@@ -45,7 +45,7 @@ class ParseConfig:
     Configuration options for parsing M3U data.
 
     Attributes:
-        schemes (list): A list of allowed URL schemes.
+        schemes (list): A list of allowed URL schemes. Default is ["http", "https", "ftp", "ftps"].
         status_checker (dict): A dictionary mapping URL schemes to custom status checker functions.
         check_live (bool): Indicates whether to check the status of live streams (default is True).
         enforce_schema (bool): Indicates whether to enforce a specific schema for parsed data.
@@ -57,6 +57,10 @@ class ParseConfig:
     status_checker: dict = field(default_factory=dict)
     check_live: bool = True
     enforce_schema: bool = True
+
+    def __post_init__(self):
+        if not self.schemes:
+            self.schemes = schemes
 
 
 @dataclass
@@ -121,7 +125,7 @@ class M3uParser:
         self._streams_info_backup = []
         self._lines = []
         self._parse_config = ParseConfig()
-        self._schemes = set(schemes)
+        self._schemes = set()
         self._timeout = aiohttp.ClientTimeout(total=timeout)
         self._loop = None
         self._enforce_schema = True
@@ -334,7 +338,9 @@ class M3uParser:
             config (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
 
         Raises:
-            Exception: Raised if there is an issue reading the content from the URL or local file.
+            NoContentToParseException: Raised if there is no content to parse in the M3U file.
+            UrlReadException: Raised when there is an issue reading content from a URL.
+            FileNotFoundError: Raised if the file does not exist or is not accessible.
 
         Returns:
             None: The parsed streams information is stored internally and can be accessed using other methods.
@@ -343,8 +349,7 @@ class M3uParser:
         self._check_live = config.check_live
         self._enforce_schema = config.enforce_schema
         self._parse_config = config
-        self._schemes = set(schemes)
-        self._schemes.update(config.schemes)
+        self._schemes = set(config.schemes)
 
         content = self._read_content(path, "m3u")
 
@@ -368,7 +373,8 @@ class M3uParser:
             config (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
 
         Raises:
-            Exception: Raised if there is an issue reading the content from the URL or local file.
+            UrlReadException: Raised when there is an issue reading content from a URL.
+            FileNotFoundError: Raised if the file does not exist or is not accessible.
 
         Returns:
             None: The parsed streams information is stored internally and can be accessed using other methods.
@@ -377,8 +383,7 @@ class M3uParser:
         self._check_live = config.check_live
         self._enforce_schema = config.enforce_schema
         self._parse_config = config
-        self._schemes = set(schemes)
-        self._schemes.update(config.schemes)
+        self._schemes = set(config.schemes)
 
         content = self._read_content(path, "json")
 
@@ -417,7 +422,8 @@ class M3uParser:
             config (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
 
         Raises:
-            Exception: Raised if there is an issue reading the content from the URL or local file.
+            UrlReadException: Raised when there is an issue reading content from a URL.
+            FileNotFoundError: Raised if the file does not exist or is not accessible.
 
         Returns:
             None: The parsed streams information is stored internally and can be accessed using other methods.
@@ -426,8 +432,7 @@ class M3uParser:
         self._check_live = config.check_live
         self._enforce_schema = config.enforce_schema
         self._parse_config = config
-        self._schemes = set(schemes)
-        self._schemes.update(config.schemes)
+        self._schemes = set(config.schemes)
 
         content = self._read_content(path, "csv")
 
@@ -466,7 +471,8 @@ class M3uParser:
             config (FilterConfig, optional): Configuration options for filtering. Defaults to FilterConfig().
 
         Raises:
-            ValueError: Raised if 'nested_key' is True but the key is not in the correct format.
+            NestedKeyException: Raised if 'nested_key' is True but the key is not in the correct format or not nested.
+            FiltersMissingException: Raised if filter word/s is missing.
 
         Returns:
             None: The internal streams information list is updated based on the filtering criteria.
@@ -587,7 +593,8 @@ class M3uParser:
             config (SortConfig, optional): Configuration options for sorting. Defaults to SortConfig().
 
         Raises:
-            KeyError: Raised if the provided key is not found in the stream information.
+            NestedKeyException: Raised if 'nested_key' is True but the key is not in the correct format.
+            KeyNotFoundException: Raised if Key is not found.
 
         Returns:
             None: The internal streams information list is sorted based on the specified key and configuration.

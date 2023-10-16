@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 from pathlib import Path
 
 import pytest
@@ -14,15 +15,53 @@ from m3u_parser.exceptions import NoStreamsException
 # Sample M3U content for testing
 SAMPLE_M3U_CONTENT = """
 #EXTM3U
-#EXTINF:-1 group-title="News",Channel 1
+#EXTINF:-1 tvg-id="Channel 1" tvg-logo="https://i.imgur.com/AvCQYgu.png" tvg-country="NP" tvg-language="Newari" group-title="News",Channel 1
 http://example.com/stream1
-#EXTINF:-1 group-title="News",Channel 2
+#EXTINF:-1 tvg-id="Channel 2" tvg-logo="https://i.imgur.com/AvCQYgu.png" tvg-country="IN" tvg-language="Hindi" group-title="News",Channel 2
 http://example.com/stream2
-#EXTINF:-1 group-title="News",Channel 3
+#EXTINF:-1 tvg-id="Channel 3" tvg-logo="https://i.imgur.com/AvCQYgu.png" tvg-country="CN" tvg-language="Chinesee" group-title="News",Channel 3
 http://example.com/stream3
 #EXTINF:0,Dlf
 #EXTVLCOPT:network-caching=1000
 rtsp://10.0.0.1:554/?avm=1&freq=514&bw=8&msys=dvbc&mtype=256qam&sr=6900&specinv=0&pids=0,16,17,18,20,800,810,850
+"""
+
+SAMPLE_JSON_CONTENT = json.dumps(
+    [
+        {
+            "name": "Channel 1",
+            "logo": "https://i.imgur.com/AvCQYgu.png",
+            "url": "http://example.com/stream1",
+            "category": "News",
+            "tvg": {"id": "Channel 1", "name": None, "url": None},
+            "country": {"code": "NP", "name": "Nepal"},
+            "language": {"code": "new", "name": "Newari"},
+        },
+        {
+            "name": "Channel 2",
+            "logo": "https://i.imgur.com/AvCQYgu.png",
+            "url": "http://example.com/stream2",
+            "category": "News",
+            "tvg": {"id": "Channel 2", "name": None, "url": None},
+            "country": {"code": "IN", "name": "India"},
+            "language": {"code": "hin", "name": "Hindi"},
+        },
+        {
+            "name": "Channel 3",
+            "logo": "https://i.imgur.com/AvCQYgu.png",
+            "url": "http://example.com/stream3",
+            "category": "News",
+            "tvg": {"id": "Channel 3", "name": None, "url": None},
+            "country": {"code": "CN", "name": "China"},
+            "language": {"code": None, "name": "Chinesee"},
+        },
+    ]
+)
+
+SAMPLE_CSV_CONTENT = """name,logo,url,category,tvg_id,tvg_name,tvg_url,country_code,country_name,language_code,language_name
+Channel 1,https://i.imgur.com/AvCQYgu.png,http://example.com/stream1,News,Channel 1,,,NP,Nepal,new,Newari
+Channel 2,https://i.imgur.com/AvCQYgu.png,http://example.com/stream2,News,Channel 2,,,IN,India,hin,Hindi
+Channel 3,https://i.imgur.com/AvCQYgu.png,http://example.com/stream3,News,Channel 3,,,CN,China,,Chinesee
 """
 
 
@@ -33,6 +72,24 @@ def temp_m3u_file(tmpdir):
     with open(m3u_file, "w") as f:
         f.write(SAMPLE_M3U_CONTENT)
     return str(m3u_file)
+
+
+# Fixture to create a temporary JSON file for testing
+@pytest.fixture
+def temp_json_file(tmpdir):
+    json_file = tmpdir.join("test.json")
+    with open(json_file, "w") as f:
+        f.write((SAMPLE_JSON_CONTENT))
+    return str(json_file)
+
+
+# Fixture to create a temporary CSV file for testing
+@pytest.fixture
+def temp_csv_file(tmpdir):
+    csv_file = tmpdir.join("test.csv")
+    with open(csv_file, "w") as f:
+        f.write((SAMPLE_CSV_CONTENT))
+    return str(csv_file)
 
 
 # Test M3uParser class
@@ -47,9 +104,21 @@ class TestM3uParser:
     # Test parsing of M3U content
     def test_parse_m3u_with_schemes(self, temp_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False, schemes=["rtsp"]))
+        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False, schemes=["http", "https", "rtsp"]))
         streams = parser.get_list()
         assert len(streams) == 4
+
+    def test_parse_json(self, temp_json_file):
+        parser = M3uParser()
+        parser.parse_json(temp_json_file, ParseConfig(check_live=False))
+        streams = parser.get_list()
+        assert len(streams) == 3
+
+    def test_parse_csv(self, temp_csv_file):
+        parser = M3uParser()
+        parser.parse_csv(temp_csv_file, ParseConfig(check_live=False))
+        streams = parser.get_list()
+        assert len(streams) == 3
 
     # Test filtering by extension
     def test_filter_by_extension(self, temp_m3u_file):
@@ -118,6 +187,7 @@ class TestM3uParser:
         parser = M3uParser()
         parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
         parser.to_file(str(json_file), format="json")
+        print(json_file)
         assert os.path.exists(str(json_file))
 
     # Test saving to CSV file
@@ -126,6 +196,7 @@ class TestM3uParser:
         parser = M3uParser()
         parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
         parser.to_file(str(csv_file), format="csv")
+        print(csv_file)
         assert os.path.exists(str(csv_file))
 
     # Test filtering by category
