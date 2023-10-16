@@ -8,7 +8,8 @@ file = Path(__file__).resolve()
 package_root_directory = file.parents[1]
 sys.path.append(str(package_root_directory))
 
-from m3u_parser import FilterConfig, M3uParser, ParseConfig, SortConfig
+from m3u_parser import M3uParser, ParseConfig, SortConfig
+from m3u_parser.exceptions import NoStreamsException
 
 # Sample M3U content for testing
 SAMPLE_M3U_CONTENT = """
@@ -65,6 +66,22 @@ class TestM3uParser:
         parser.filter_by('status', 'BAD')
         streams = parser.get_list()
         assert len(streams) == 3
+
+    # Test filtering by invalid category
+    def test_filter_by_invalid_category(self, temp_m3u_file):
+        parser = M3uParser()
+        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
+        parser.filter_by('category', 'Invalid')
+        streams = parser.get_list()
+        assert len(streams) == 0
+
+    # Test filtering by invalid category
+    def test_filter_by_invalid_key(self, temp_m3u_file):
+        parser = M3uParser()
+        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
+        parser.filter_by('invalid', 'Invalid')
+        streams = parser.get_list()
+        assert len(streams) == 0
 
     # Test sorting by stream name in ascending order
     def test_sort_by_name_asc(self, temp_m3u_file):
@@ -128,10 +145,11 @@ class TestM3uParser:
         assert len(streams) == 3
 
     # Test parsing invalid M3U content
-    # def test_invalid_m3u_content(self, tmpdir):
-    #     invalid_m3u_file = tmpdir.join("invalid.m3u")
-    #     with open(invalid_m3u_file, "w") as f:
-    #         f.write("Invalid M3U Content")
-    #     parser = M3uParser()
-    #     with pytest.raises(Exception):
-    #         parser.parse_m3u(str(invalid_m3u_file))
+    def test_invalid_m3u_content(self, tmpdir):
+        invalid_m3u_file = tmpdir.join("invalid.m3u")
+        with open(invalid_m3u_file, "w") as f:
+            f.write("Invalid M3U Content")
+        parser = M3uParser()
+        with pytest.raises(NoStreamsException):
+            parser.parse_m3u(str(invalid_m3u_file))
+            parser.get_random_stream()
