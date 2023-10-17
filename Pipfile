@@ -9,6 +9,7 @@ pylint = "*"
 black = "*"
 isort = "*"
 pytest = "*"
+python-semantic-release = "*"
 
 [packages]
 pycountry = "*"

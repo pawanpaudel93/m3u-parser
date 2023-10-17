@@ -16,12 +16,6 @@ class KeyNotFoundException(Exception):
     pass
 
 
-class FiltersMissingException(Exception):
-    """Raised when an filter word/s is missing."""
-
-    pass
-
-
 class SavingNotSupportedException(Exception):
     """Raised when saving to a specific format is not supported."""
 

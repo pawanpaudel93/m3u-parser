@@ -1,6 +1,6 @@
+import json
 import os
 import sys
-import json
 from pathlib import Path
 
 import pytest
@@ -9,8 +9,8 @@ file = Path(__file__).resolve()
 package_root_directory = file.parents[1]
 sys.path.append(str(package_root_directory))
 
-from m3u_parser import M3uParser, ParseConfig, SortConfig
-from m3u_parser.exceptions import NoStreamsException
+from m3u_parser import FilterConfig, M3uParser, ParseConfig, SortConfig
+from m3u_parser.exceptions import KeyNotFoundException, NoStreamsException
 
 # Sample M3U content for testing
 SAMPLE_M3U_CONTENT = """
@@ -128,13 +128,13 @@ class TestM3uParser:
         streams = parser.get_list()
         assert len(streams) == 0
 
-    # Test filtering by status
-    def test_filter_by_status(self, temp_m3u_file):
+    # Test filtering by nested key
+    def test_filter_by_nested_key(self, temp_m3u_file):
         parser = M3uParser()
         parser.parse_m3u(temp_m3u_file)
-        parser.filter_by('status', 'BAD')
+        parser.filter_by('language.code', None, FilterConfig(key_splitter=".", retrieve=False, nested_key=True))
         streams = parser.get_list()
-        assert len(streams) == 3
+        assert len(streams) == 1
 
     # Test filtering by invalid category
     def test_filter_by_invalid_category(self, temp_m3u_file):
@@ -148,9 +148,8 @@ class TestM3uParser:
     def test_filter_by_invalid_key(self, temp_m3u_file):
         parser = M3uParser()
         parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
-        parser.filter_by('invalid', 'Invalid')
-        streams = parser.get_list()
-        assert len(streams) == 0
+        with pytest.raises(KeyNotFoundException):
+            parser.filter_by('invalid', 'Invalid')
 
     # Test sorting by stream name in ascending order
     def test_sort_by_name_asc(self, temp_m3u_file):

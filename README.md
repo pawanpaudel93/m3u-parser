@@ -65,11 +65,11 @@ parser = M3uParser(useragent=default_useragent, timeout=5)
 
 #### parse_m3u
 
-`parse_m3u(path: str, config: ParseConfig = ParseConfig()) -> None`
+`parse_m3u(data_source: str, config: ParseConfig = ParseConfig()) -> None`
 
 Parses the content of a local file or URL and extracts the streams information.
 
-- `path`: The path to the m3u file, which can be a local file path or a URL.
+- `data_source`: The path to the m3u file, which can be a local file path or a URL.
 - `config` (optional): Configuration options for parsing. Defaults to ParseConfig().
 
 ```python
@@ -78,11 +78,11 @@ parser.parse_m3u(path, ParseConfig(check_live=True, enforce_schema=True))
 
 #### parse_json
 
-`parse_json(path: str, config: ParseConfig = ParseConfig()) -> None`
+`parse_json(data_source: str, config: ParseConfig = ParseConfig()) -> None`
 
 Parses the content of a local file or URL and extracts the streams information.
 
-- `path`: The path to the json file, which can be a local file path or a URL.
+- `data_source`: The path to the json file, which can be a local file path or a URL.
 - `config` (optional): Configuration options for parsing. Defaults to ParseConfig().
 
 ```python
@@ -91,11 +91,11 @@ parser.parse_json(path, ParseConfig(check_live=True, enforce_schema=True))
 
 #### parse_csv
 
-`parse_csv(path: str, config: ParseConfig = ParseConfig()) -> None`
+`parse_csv(data_source: str, config: ParseConfig = ParseConfig()) -> None`
 
 Parses the content of a local file or URL and extracts the streams information.
 
-- `path`: The path to the csv file, which can be a local file path or a URL.
+- `data_source`: The path to the csv file, which can be a local file path or a URL.
 - `config` (optional): Configuration options for parsing. Defaults to ParseConfig().
 
 ```python
@@ -104,7 +104,7 @@ parser.parse_csv(path, ParseConfig(check_live=True, enforce_schema=True))
 
 #### filter_by
 
-`filter_by(key: str, filters: Union[str, list], config: FilterConfig = FilterConfig()) -> None`
+`filter_by(key: str, filters: Union[str, list[Union[str, None]], None], config: FilterConfig = FilterConfig()) -> None`
 
 Filters the streams information based on a key and filter/s.
 

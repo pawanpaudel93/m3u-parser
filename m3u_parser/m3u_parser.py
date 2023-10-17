@@ -15,7 +15,6 @@ import pycountry
 import requests
 
 from .exceptions import (
-    FiltersMissingException,
     KeyNotFoundException,
     NestedKeyException,
     NoContentToParseException,
@@ -107,17 +106,19 @@ class M3uParser:
 
     Example:
 
-    >>> url = "/home/pawan/Downloads/ru.m3u"
-    >>> useragent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
-    >>> parser = M3uParser(timeout=5, useragent=useragent)
-    >>> parser.parse_m3u(url)
-    INFO: Started parsing m3u file...
-    >>> parser.remove_by_extension('mp4')
-    >>> parser.filter_by('status', 'GOOD')
-    >>> print(len(parser.get_list()))
-    4
-    >> parser.to_file('pawan.json')
-    INFO: Saving to file...
+    ```python
+    url = "/home/pawan/Downloads/ru.m3u"
+    useragent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+    parser = M3uParser(timeout=5, useragent=useragent)
+    parser.parse_m3u(url)
+    # INFO: Started parsing m3u file...
+    parser.remove_by_extension('mp4')
+    parser.filter_by('status', 'GOOD')
+    print(len(parser.get_list()))
+    # 4
+    parser.to_file('pawan.json')
+    # INFO: Saving to file...
+    ```
     """
 
     def __init__(self, useragent: str = default_useragent, timeout: int = 5):
@@ -324,7 +325,7 @@ class M3uParser:
 
     def parse_m3u(
         self,
-        path: str,
+        data_source: str,
         config: ParseConfig = ParseConfig(),
     ):
         """
@@ -334,7 +335,7 @@ class M3uParser:
         It then processes the M3U file line by line, converting it into a structured format of streams information.
 
         Args:
-            path (str): The file path or URL of the M3U file to be parsed.
+            data_source (str): The file path or URL of the M3U file to be parsed.
             config (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
 
         Raises:
@@ -351,7 +352,7 @@ class M3uParser:
         self._parse_config = config
         self._schemes = set(config.schemes)
 
-        content = self._read_content(path, "m3u")
+        content = self._read_content(data_source, "m3u")
 
         # splitting contents into lines to parse them
         self._lines = [line.strip("\n\r") for line in content.split("\n") if line.strip("\n\r") != ""]
@@ -360,7 +361,7 @@ class M3uParser:
         else:
             raise NoContentToParseException("No content to parse.")
 
-    def parse_json(self, path: str, config: ParseConfig = ParseConfig()):
+    def parse_json(self, data_source: str, config: ParseConfig = ParseConfig()):
         """
         Parses the content of a local JSON file or JSON URL.
 
@@ -369,7 +370,7 @@ class M3uParser:
         The parsed information is processed and stored internally for further operations.
 
         Args:
-            path (str): The file path or URL of the JSON file containing streams information.
+            data_source (str): The file path or URL of the JSON file containing streams information.
             config (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
 
         Raises:
@@ -385,7 +386,7 @@ class M3uParser:
         self._parse_config = config
         self._schemes = set(config.schemes)
 
-        content = self._read_content(path, "json")
+        content = self._read_content(data_source, "json")
 
         streams_info = json.loads(content)
         if streams_info and type(streams_info) == list and len(streams_info) > 0:
@@ -409,7 +410,7 @@ class M3uParser:
             ]
         self._check_streams_status()
 
-    def parse_csv(self, path: str, config: ParseConfig = ParseConfig()):
+    def parse_csv(self, data_source: str, config: ParseConfig = ParseConfig()):
         """
         Parses the content of a local CSV file or CSV URL.
 
@@ -418,7 +419,7 @@ class M3uParser:
         The parsed information is processed and stored internally for further operations.
 
         Args:
-            path (str): The file path or URL of the CSV file containing streams information.
+            data_source (str): The file path or URL of the CSV file containing streams information.
             config (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
 
         Raises:
@@ -434,7 +435,7 @@ class M3uParser:
         self._parse_config = config
         self._schemes = set(config.schemes)
 
-        content = self._read_content(path, "csv")
+        content = self._read_content(data_source, "csv")
 
         reader = csv.DictReader(content.splitlines(), delimiter=",")
         get_value = lambda row, key: row.get(key) or None
@@ -458,7 +459,9 @@ class M3uParser:
         ]
         self._check_streams_status()
 
-    def filter_by(self, key: str, filters: Union[str, list], config: FilterConfig = FilterConfig()):
+    def filter_by(
+        self, key: str, filters: Union[str, list[Union[str, None]], None], config: FilterConfig = FilterConfig()
+    ):
         """
         Filter streams information based on a specific key and filter criteria.
 
@@ -471,8 +474,8 @@ class M3uParser:
             config (FilterConfig, optional): Configuration options for filtering. Defaults to FilterConfig().
 
         Raises:
-            NestedKeyException: Raised if 'nested_key' is True but the key is not in the correct format or not nested.
-            FiltersMissingException: Raised if filter word/s is missing.
+            NestedKeyException: Raised if 'nested_key' is True but the key is not in the correct format.
+            KeyNotFoundException: Raised if key is missing in the streams.
 
         Returns:
             None: The internal streams information list is updated based on the filtering criteria.
@@ -483,31 +486,37 @@ class M3uParser:
                 key_0, key_1 = key.split(config.key_splitter)
             except ValueError:
                 raise NestedKeyException("Nested key must be in the format <key><key_splitter><nested_key>.")
-        if not filters:
-            raise FiltersMissingException("Filter word/s missing.")
+            if self._streams_info and (
+                key_0 not in self._streams_info[0] or key_1 not in self._streams_info[0][key_0]
+            ):
+                raise KeyNotFoundException(f"Nested key '{key}' is not present in the streams.")
+        elif self._streams_info and key not in self._streams_info[0]:
+            raise KeyNotFoundException(f"Key '{key}' is not present in the streams.")
         if not isinstance(filters, list):
             filters = [filters]
         any_or_all = any if config.retrieve else all
         not_operator = lambda x: x if config.retrieve else not x
-        try:
-            self._streams_info = list(
-                filter(
-                    lambda stream_info: any_or_all(
-                        not_operator(
+
+        self._streams_info = list(
+            filter(
+                lambda stream_info: any_or_all(
+                    not_operator(
+                        (stream_info.get(key_0, {}).get(key_1) if config.nested_key else stream_info.get(key))
+                        is not None
+                        and (
                             re.search(
                                 re.compile(fltr, flags=re.IGNORECASE),
-                                (stream_info.get(key_0, {}).get(key_1, "") or "")
-                                if config.nested_key
-                                else (stream_info.get(key, "") or ""),
+                                stream_info.get(key_0, {}).get(key_1) if config.nested_key else stream_info.get(key),
                             )
+                            if fltr is not None
+                            else True
                         )
-                        for fltr in filters
-                    ),
-                    self._streams_info,
-                )
+                    )
+                    for fltr in filters
+                ),
+                self._streams_info,
             )
-        except AttributeError:
-            raise NestedKeyException("Key given is not nested.")
+        )
 
     def reset_operations(self):
         """
@@ -605,14 +614,20 @@ class M3uParser:
                 key_0, key_1 = key.split(config.key_splitter)
             except ValueError:
                 raise NestedKeyException("Nested key must be in the format <key><key_splitter><nested_key>.")
-        try:
-            self._streams_info = sorted(
-                self._streams_info,
-                key=lambda stream_info: stream_info[key_0][key_1] if config.nested_key else stream_info[key],
-                reverse=not config.asc,
-            )
-        except KeyError:
-            raise KeyNotFoundException("Key not found.")
+            if self._streams_info and (
+                key_0 not in self._streams_info[0] or key_1 not in self._streams_info[0][key_0]
+            ):
+                raise KeyNotFoundException(f"Nested key '{key}' is not present in the streams.")
+        elif self._streams_info and key not in self._streams_info[0]:
+            raise KeyNotFoundException(f"Key '{key}' is not present in the streams.")
+
+        self._streams_info = sorted(
+            self._streams_info,
+            key=lambda stream_info: (stream_info[key_0][key_1] is not None, stream_info[key_0][key_1])
+            if config.nested_key
+            else (stream_info[key] is not None, stream_info[key]),
+            reverse=not config.asc,
+        )
 
     def get_json(self, indent: int = 4):
         """
