@@ -66,7 +66,7 @@ Channel 3,https://i.imgur.com/AvCQYgu.png,http://example.com/stream3,News,Channe
 
 
 async def rtsp_checker(url: str):
-    return "GOOD"
+    return True
 
 
 # Fixture to create a temporary M3U file for testing
@@ -195,6 +195,7 @@ class TestM3uParser:
         parser.to_file(str(json_file), format="json")
         print(json_file)
         assert os.path.exists(str(json_file))
+        os.remove(str(json_file))
 
     # Test saving to CSV file
     def test_save_to_csv(self, temp_m3u_file, tmpdir):
@@ -204,6 +205,7 @@ class TestM3uParser:
         parser.to_file(str(csv_file), format="csv")
         print(csv_file)
         assert os.path.exists(str(csv_file))
+        os.remove(str(csv_file))
 
     # Test filtering by category
     def test_filter_by_category(self, temp_m3u_file):

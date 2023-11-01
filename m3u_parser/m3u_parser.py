@@ -199,10 +199,10 @@ class M3uParser:
                     timeout=self._timeout,
                 ) as response:
                     if response.status == 200:
-                        return "GOOD"
+                        return True
         except:
             pass
-        return "BAD"
+        return False
 
     async def _check_status(self, index):
         stream_info = self._streams_info[index]
@@ -211,7 +211,8 @@ class M3uParser:
         status_fn = self._parse_config.status_checker.get(scheme)
         if status_fn is None or not callable(status_fn):
             status_fn = self._get_status
-        stream_info["status"] = "GOOD" if await status_fn(stream_url) == "GOOD" else "BAD"
+        stream_info["status"] = "GOOD" if await status_fn(stream_url) == True else "BAD"
+        stream_info["live"] = stream_info["status"] == "GOOD"
         self._streams_info[index] = stream_info
 
     def _check_streams_status(self):
@@ -287,9 +288,10 @@ class M3uParser:
                 status_fn = self._parse_config.status_checker.get(scheme)
                 if status_fn is None or not callable(status_fn):
                     status_fn = self._get_status
-                status = "GOOD" if await status_fn(stream_link) == "GOOD" else "BAD"
+                status = "GOOD" if await status_fn(stream_link) == True else "BAD"
             if self._check_live:
                 info["status"] = status
+                info["live"] = status == "GOOD"
             self._streams_info.append(info)
 
     @staticmethod
@@ -404,6 +406,7 @@ class M3uParser:
                     "country": {"code": stream_info.get("country_code"), "name": stream_info.get("country_name")},
                     "language": {"code": stream_info.get("language_code"), "name": stream_info.get("language_name")},
                     "status": stream_info.get("status") or "BAD",
+                    "live": stream_info.get("status") == "GOOD",
                 }
                 for stream_info in streams_info
                 if type(stream_info) == dict and stream_info.get("url")
@@ -453,6 +456,7 @@ class M3uParser:
                 "country": {"code": get_value(row, "country_code"), "name": get_value(row, "country_name")},
                 "language": {"code": get_value(row, "language_code"), "name": get_value(row, "language_name")},
                 "status": get_value(row, "status") or "BAD",
+                "live": get_value(row, "status") == "GOOD",
             }
             for row in reader
             if get_value(row, "url")
