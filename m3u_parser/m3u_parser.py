@@ -211,7 +211,7 @@ class M3uParser:
         status_fn = self._parse_config.status_checker.get(scheme)
         if status_fn is None or not callable(status_fn):
             status_fn = self._get_status
-        stream_info["status"] = await status_fn(stream_url)
+        stream_info["status"] = "GOOD" if await status_fn(stream_url) == "GOOD" else "BAD"
         self._streams_info[index] = stream_info
 
     def _check_streams_status(self):
@@ -287,7 +287,7 @@ class M3uParser:
                 status_fn = self._parse_config.status_checker.get(scheme)
                 if status_fn is None or not callable(status_fn):
                     status_fn = self._get_status
-                status = await status_fn(stream_link)
+                status = "GOOD" if await status_fn(stream_link) == "GOOD" else "BAD"
             if self._check_live:
                 info["status"] = status
             self._streams_info.append(info)

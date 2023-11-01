@@ -65,6 +65,10 @@ Channel 3,https://i.imgur.com/AvCQYgu.png,http://example.com/stream3,News,Channe
 """
 
 
+async def rtsp_checker(url: str):
+    return "GOOD"
+
+
 # Fixture to create a temporary M3U file for testing
 @pytest.fixture
 def temp_m3u_file(tmpdir):
@@ -104,7 +108,10 @@ class TestM3uParser:
     # Test parsing of M3U content
     def test_parse_m3u_with_schemes(self, temp_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False, schemes=["http", "https", "rtsp"]))
+        parser.parse_m3u(
+            temp_m3u_file,
+            ParseConfig(check_live=True, schemes=["http", "https", "rtsp"], status_checker={"rtsp": rtsp_checker}),
+        )
         streams = parser.get_list()
         assert len(streams) == 4
 
