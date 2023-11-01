@@ -44,12 +44,21 @@ class ParseConfig:
     Configuration options for parsing M3U data.
 
     Attributes:
-        schemes (list): A list of allowed URL schemes. Default is ["http", "https", "ftp", "ftps"].
-        status_checker (dict): A dictionary mapping URL schemes to custom status checker functions.
-        check_live (bool): Indicates whether to check the status of live streams (default is True).
-        enforce_schema (bool): Indicates whether to enforce a specific schema for parsed data.
+        - `schemes` (list): A list of allowed URL schemes. Default is ["http", "https", "ftp", "ftps"].
+        - `status_checker` (dict): A dictionary mapping URL schemes to custom status checker functions.
+        - `check_live` (bool): Indicates whether to check the status of live streams (default is True).
+        - `enforce_schema` (bool): Indicates whether to enforce a specific schema for parsed data.
             If enforced, non-existing fields in a stream are filled with None/null.
             If not enforced, non-existing fields are ignored.
+
+    Example::
+
+        async def ftp_checker(url: str) -> bool:
+            # Checker implementation
+            # Return either True for good status or False for bad status
+            return True
+
+        config = ParseConfig(schemes=['http', 'https', 'ftp'], status_checker={"ftp": ftp_checker}, check_live=True, enforce_schema=True)
     """
 
     schemes: list = field(default_factory=list)
@@ -68,9 +77,9 @@ class FilterConfig:
     Configuration options for filtering stream information.
 
     Attributes:
-        key_splitter (str): A string used to split nested keys (default is "-").
-        retrieve (bool): Indicates whether to retrieve or remove based on the filter key (default is True).
-        nested_key (bool): Indicates whether the filter key is nested or not (default is False).
+        - `key_splitter` (str): A string used to split nested keys (default is "-").
+        - `retrieve` (bool): Indicates whether to retrieve or remove based on the filter key (default is True).
+        - `nested_key` (bool): Indicates whether the filter key is nested or not (default is False).
     """
 
     key_splitter: str = "-"
@@ -84,9 +93,9 @@ class SortConfig:
     Configuration options for sorting stream information.
 
     Attributes:
-        key_splitter (str): A string used to split nested keys (default is "-").
-        asc (bool): Indicates whether to sort in ascending (True) or descending (False) order (default is True).
-        nested_key (bool): Indicates whether the sort key is nested or not (default is False).
+        - `key_splitter` (str): A string used to split nested keys (default is "-").
+        - `asc` (bool): Indicates whether to sort in ascending (True) or descending (False) order (default is True).
+        - `nested_key` (bool): Indicates whether the sort key is nested or not (default is False).
     """
 
     key_splitter: str = "-"
@@ -100,25 +109,23 @@ class M3uParser:
     This class parses the contents of M3U files into a list of stream information, which can be saved as a JSON, CSV, or M3U file.
 
     Args:
-        useragent (str, optional): User agent string for HTTP requests. Defaults to default_useragent.
-        timeout (int, optional): Timeout duration for HTTP requests in seconds. Defaults to 5.
+        - `useragent` (str, optional): User agent string for HTTP requests. Defaults to default_useragent.
+        - `timeout` (int, optional): Timeout duration for HTTP requests in seconds. Defaults to 5.
 
 
-    Example:
+    Example::
 
-    ```python
-    url = "/home/pawan/Downloads/ru.m3u"
-    useragent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
-    parser = M3uParser(timeout=5, useragent=useragent)
-    parser.parse_m3u(url)
-    # INFO: Started parsing m3u file...
-    parser.remove_by_extension('mp4')
-    parser.filter_by('status', 'GOOD')
-    print(len(parser.get_list()))
-    # 4
-    parser.to_file('pawan.json')
-    # INFO: Saving to file...
-    ```
+        url = "/home/pawan/Downloads/ru.m3u"
+        useragent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+        parser = M3uParser(timeout=5, useragent=useragent)
+        parser.parse_m3u(url)
+        # INFO: Started parsing m3u file...
+        parser.remove_by_extension('mp4')
+        parser.filter_by('status', 'GOOD')
+        print(len(parser.get_list()))
+        # 4
+        parser.to_file('pawan.json')
+        # INFO: Saving to file...
     """
 
     def __init__(self, useragent: str = default_useragent, timeout: int = 5):
@@ -337,13 +344,13 @@ class M3uParser:
         It then processes the M3U file line by line, converting it into a structured format of streams information.
 
         Args:
-            data_source (str): The file path or URL of the M3U file to be parsed.
-            config (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
+            - `data_source` (str): The file path or URL of the M3U file to be parsed.
+            - `config` (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
 
         Raises:
-            NoContentToParseException: Raised if there is no content to parse in the M3U file.
-            UrlReadException: Raised when there is an issue reading content from a URL.
-            FileNotFoundError: Raised if the file does not exist or is not accessible.
+            - `NoContentToParseException`: Raised if there is no content to parse in the M3U file.
+            - `UrlReadException`: Raised when there is an issue reading content from a URL.
+            - `FileNotFoundError`: Raised if the file does not exist or is not accessible.
 
         Returns:
             None: The parsed streams information is stored internally and can be accessed using other methods.
@@ -372,12 +379,12 @@ class M3uParser:
         The parsed information is processed and stored internally for further operations.
 
         Args:
-            data_source (str): The file path or URL of the JSON file containing streams information.
-            config (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
+            - `data_source` (str): The file path or URL of the JSON file containing streams information.
+            - `config` (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
 
         Raises:
-            UrlReadException: Raised when there is an issue reading content from a URL.
-            FileNotFoundError: Raised if the file does not exist or is not accessible.
+            - `UrlReadException`: Raised when there is an issue reading content from a URL.
+            - `FileNotFoundError`: Raised if the file does not exist or is not accessible.
 
         Returns:
             None: The parsed streams information is stored internally and can be accessed using other methods.
@@ -422,12 +429,12 @@ class M3uParser:
         The parsed information is processed and stored internally for further operations.
 
         Args:
-            data_source (str): The file path or URL of the CSV file containing streams information.
-            config (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
+            - `data_source` (str): The file path or URL of the CSV file containing streams information.
+            - `config` (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
 
         Raises:
-            UrlReadException: Raised when there is an issue reading content from a URL.
-            FileNotFoundError: Raised if the file does not exist or is not accessible.
+            - `UrlReadException`: Raised when there is an issue reading content from a URL.
+            - `FileNotFoundError`: Raised if the file does not exist or is not accessible.
 
         Returns:
             None: The parsed streams information is stored internally and can be accessed using other methods.
@@ -473,13 +480,13 @@ class M3uParser:
         If the key is not found or if the filter words do not match any stream information, the filtering is done silently.
 
         Args:
-            key (str): The key to filter by. It can be a nested key separated by a splitter if 'nested_key' is True in config.
-            filters (Union[str, list]): Filter word or list of filter words to perform the filtering operation.
-            config (FilterConfig, optional): Configuration options for filtering. Defaults to FilterConfig().
+            - `key` (str): The key to filter by. It can be a nested key separated by a splitter if 'nested_key' is True in config.
+            - `filters` (Union[str, list]): Filter word or list of filter words to perform the filtering operation.
+            - `config` (FilterConfig, optional): Configuration options for filtering. Defaults to FilterConfig().
 
         Raises:
-            NestedKeyException: Raised if 'nested_key' is True but the key is not in the correct format.
-            KeyNotFoundException: Raised if key is missing in the streams.
+            - `NestedKeyException`: Raised if 'nested_key' is True but the key is not in the correct format.
+            - `KeyNotFoundException`: Raised if key is missing in the streams.
 
         Returns:
             None: The internal streams information list is updated based on the filtering criteria.
@@ -542,7 +549,7 @@ class M3uParser:
         If the stream URL ends with the specified extension(s), it will be removed from the list.
 
         Args:
-            extension (Union[str, list]): File extension or list of file extensions to be removed from the streams information.
+            - `extension` (Union[str, list]): File extension or list of file extensions to be removed from the streams information.
 
         Returns:
             None: The internal streams information list is updated, removing streams with the specified extension(s).
@@ -557,7 +564,7 @@ class M3uParser:
         Only streams with URLs ending with the specified extension(s) will be retained in the list.
 
         Args:
-            extension (Union[str, list]): File extension or list of file extensions to be retrieved from the streams information.
+            - `extension` (Union[str, list]): File extension or list of file extensions to be retrieved from the streams information.
 
         Returns:
             None: The internal streams information list is updated, retaining only streams with the specified extension(s).
@@ -572,7 +579,7 @@ class M3uParser:
         If the category of a stream contains the provided filter word(s), that stream will be removed from the list.
 
         Args:
-            filter_word (Union[str, list]): Filter word or list of filter words to match against stream categories.
+            - `filter_word` (Union[str, list]): Filter word or list of filter words to match against stream categories.
 
         Returns:
             None: The internal streams information list is updated, removing streams with specified category filter word(s).
@@ -587,7 +594,7 @@ class M3uParser:
         Only streams with categories containing the provided filter word(s) will be retained in the list.
 
         Args:
-            filter_word (Union[str, list]): Filter word or list of filter words to match against stream categories.
+            - `filter_word` (Union[str, list]): Filter word or list of filter words to match against stream categories.
 
         Returns:
             None: The internal streams information list is updated, retaining only streams with specified category filter word(s).
@@ -602,12 +609,12 @@ class M3uParser:
         according to the specified configuration options.
 
         Args:
-            key (str): The key to sort by. It can be a nested key separated by a splitter if 'nested_key' is True in config.
-            config (SortConfig, optional): Configuration options for sorting. Defaults to SortConfig().
+            - `key` (str): The key to sort by. It can be a nested key separated by a splitter if 'nested_key' is True in config.
+            - `config` (SortConfig, optional): Configuration options for sorting. Defaults to SortConfig().
 
         Raises:
-            NestedKeyException: Raised if 'nested_key' is True but the key is not in the correct format.
-            KeyNotFoundException: Raised if Key is not found.
+            - `NestedKeyException`: Raised if 'nested_key' is True but the key is not in the correct format.
+            - `KeyNotFoundException`: Raised if Key is not found.
 
         Returns:
             None: The internal streams information list is sorted based on the specified key and configuration.
@@ -641,7 +648,7 @@ class M3uParser:
         with optional indentation for readability.
 
         Args:
-            indent (int, optional): Number of spaces for JSON indentation. Defaults to 4.
+            - `indent` (int, optional): Number of spaces for JSON indentation. Defaults to 4.
 
         Returns:
             str: JSON string representation of the internal streams information list.
@@ -668,7 +675,7 @@ class M3uParser:
         Optionally, shuffles the list before selecting to provide a truly random choice.
 
         Args:
-            random_shuffle (bool, optional): Whether to shuffle the streams information list before selecting. Defaults to True.
+            - `random_shuffle` (bool, optional): Whether to shuffle the streams information list before selecting. Defaults to True.
 
         Returns:
             dict or None: A randomly selected stream information dictionary, or None if no streams are available.
@@ -687,8 +694,8 @@ class M3uParser:
         The format is determined by the file extension or the optional 'format' parameter.
 
         Args:
-            filename (str): Name of the file to save the streams information as.
-            format (str, optional): File format to save the streams information as (csv/json/m3u). Defaults to "json".
+            - `filename` (str): Name of the file to save the streams information as.
+            - `format` (str, optional): File format to save the streams information as (csv/json/m3u). Defaults to "json".
 
         Returns:
             None: The streams information is saved to the specified file in the specified format.

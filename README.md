@@ -231,8 +231,19 @@ Attributes:
 - status_checker (dict): A dictionary mapping URL schemes to custom status checker functions.
 - check_live (bool): Indicates whether to check the status of live streams (default is True).
 - enforce_schema (bool): Indicates whether to enforce a specific schema for parsed data.
-    If enforced, non-existing fields in a stream are filled with None/null.
-    If not enforced, non-existing fields are ignored.
+  - If enforced, non-existing fields in a stream are filled with None/null.
+  - If not enforced, non-existing fields are ignored.
+
+You can define your own custom status checker function for schemes. If no status checker is defined, then the default status checker is used. The default status checker works for `http` and `https` url schemes only.
+
+```python
+async def ftp_checker(url: str) -> bool:
+    # Checker implementation
+    # Return either True for good status or False for bad status
+    return True
+
+config = ParseConfig(schemes=['http', 'https', 'ftp'], status_checker={"ftp": ftp_checker}, check_live=True, enforce_schema=True)
+```
 
 `FilterConfig`
 Configuration options for filtering stream information.
