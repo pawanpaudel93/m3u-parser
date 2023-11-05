@@ -141,7 +141,7 @@ class TestM3uParser:
         parser.parse_m3u(temp_m3u_file)
         parser.filter_by('language.code', None, FilterConfig(key_splitter=".", retrieve=False, nested_key=True))
         streams = parser.get_list()
-        assert len(streams) == 1
+        assert len(streams) == 2
 
     # Test filtering by invalid category
     def test_filter_by_invalid_category(self, temp_m3u_file):
@@ -157,6 +157,21 @@ class TestM3uParser:
         parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
         with pytest.raises(KeyNotFoundException):
             parser.filter_by('invalid', 'Invalid')
+
+    # Test filtering by live
+    def test_filter_by_live(self, temp_m3u_file):
+        parser = M3uParser()
+        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=True, schemes=["http", "https", "rtsp"]))
+        parser.filter_by("live", False)
+        streams = parser.get_list()
+        assert len(streams) == 4
+
+    # Test filtering by live when check_live is False
+    def test_filter_by_live_when_check_live_false(self, temp_m3u_file):
+        parser = M3uParser()
+        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False, schemes=["http", "https", "rtsp"]))
+        with pytest.raises(KeyNotFoundException):
+            parser.filter_by("live", False)
 
     # Test sorting by stream name in ascending order
     def test_sort_by_name_asc(self, temp_m3u_file):

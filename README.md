@@ -104,7 +104,7 @@ parser.parse_csv(path, ParseConfig(check_live=True, enforce_schema=True))
 
 #### filter_by
 
-`filter_by(key: str, filters: Union[str, list[Union[str, None]], None], config: FilterConfig = FilterConfig()) -> None`
+`filter_by(key: str, filters: Union[str, list[Union[str, None, bool]], None, bool], config: FilterConfig = FilterConfig()) -> None`
 
 Filters the streams information based on a key and filter/s.
 

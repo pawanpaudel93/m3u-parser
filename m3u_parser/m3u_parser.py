@@ -471,7 +471,10 @@ class M3uParser:
         self._check_streams_status()
 
     def filter_by(
-        self, key: str, filters: Union[str, list[Union[str, None]], None], config: FilterConfig = FilterConfig()
+        self,
+        key: str,
+        filters: Union[str, list[Union[str, None, bool]], None, bool],
+        config: FilterConfig = FilterConfig(),
     ):
         """
         Filter streams information based on a specific key and filter criteria.
@@ -481,7 +484,7 @@ class M3uParser:
 
         Args:
             - `key` (str): The key to filter by. It can be a nested key separated by a splitter if 'nested_key' is True in config.
-            - `filters` (Union[str, list]): Filter word or list of filter words to perform the filtering operation.
+            - `filters` (Union[str, list[Union[str, None, bool]], None, bool]): Filter word or list of filter words to perform the filtering operation.
             - `config` (FilterConfig, optional): Configuration options for filtering. Defaults to FilterConfig().
 
         Raises:
@@ -491,7 +494,7 @@ class M3uParser:
         Returns:
             None: The internal streams information list is updated based on the filtering criteria.
         """
-        key_0, key_1 = [""] * 2
+        key_0, key_1 = [key, ""]
         if config.nested_key:
             try:
                 key_0, key_1 = key.split(config.key_splitter)
@@ -508,23 +511,33 @@ class M3uParser:
         any_or_all = any if config.retrieve else all
         not_operator = lambda x: x if config.retrieve else not x
 
+        def check_filter(stream_info, fltr):
+            value = stream_info.get(key_0, {}).get(key_1) if config.nested_key else stream_info.get(key)
+            logger.info(f"Filter: {fltr}, Value: {value}")
+            # Case 1: Both filter and value are None, return True
+            if fltr is None and value is None:
+                return True
+
+            # Case 2: Filter is None, but value is not None, return False
+            if fltr is None and value is not None:
+                return False
+
+            # Case 3: Filter is not None, but value is None, return False
+            if fltr is not None and value is None:
+                return False
+
+            # Case 4: Both filter and value are not None, apply the filter condition
+            if isinstance(fltr, bool):
+                return value == fltr
+            if isinstance(fltr, str):
+                return re.search(re.compile(fltr, flags=re.IGNORECASE), str(value)) is not None
+
+            # Case 5: Invalid filter type, return False
+            return False
+
         self._streams_info = list(
             filter(
-                lambda stream_info: any_or_all(
-                    not_operator(
-                        (stream_info.get(key_0, {}).get(key_1) if config.nested_key else stream_info.get(key))
-                        is not None
-                        and (
-                            re.search(
-                                re.compile(fltr, flags=re.IGNORECASE),
-                                stream_info.get(key_0, {}).get(key_1) if config.nested_key else stream_info.get(key),
-                            )
-                            if fltr is not None
-                            else True
-                        )
-                    )
-                    for fltr in filters
-                ),
+                lambda stream_info: any_or_all(not_operator(check_filter(stream_info, fltr)) for fltr in filters),
                 self._streams_info,
             )
         )
@@ -619,7 +632,7 @@ class M3uParser:
         Returns:
             None: The internal streams information list is sorted based on the specified key and configuration.
         """
-        key_0, key_1 = [""] * 2
+        key_0, key_1 = [key, ""]
         if config.nested_key:
             try:
                 key_0, key_1 = key.split(config.key_splitter)
