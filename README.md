@@ -128,50 +128,50 @@ parser.reset_operations()
 
 #### remove_by_extension
 
-`remove_by_extension(extension: Union[str, list]) -> None`
+`remove_by_extension(extensions: Union[str, list[str]]) -> None`
 
-Removes stream information with a certain extension or extensions.
+Removes stream information with a certain extension(s).
 
-- `extension`: The name of the extension(s) to remove, e.g., "mp4" or ["mp4", "m3u8"].
+- `extensions`: The name of the extension(s) to remove, e.g., "mp4" or ["mp4", "m3u8"].
 
 ```python
-parser.remove_by_extension(extension)
+parser.remove_by_extension(extensions)
 ```
 
 #### retrieve_by_extension
 
-`retrieve_by_extension(extension: Union[str, list]) -> None`
+`retrieve_by_extension(extension: Union[str, list[str]]) -> None`
 
-Retrieves only stream information with a certain extension or extensions.
+Retrieves only stream information with a certain extension(s).
 
-- `extension`: The name of the extension(s) to retrieve, e.g., "mp4" or ["mp4", "m3u8"].
+- `extensions`: The name of the extension(s) to retrieve, e.g., "mp4" or ["mp4", "m3u8"].
 
 ```python
-parser.retrieve_by_extension(extension)
+parser.retrieve_by_extension(extensions)
 ```
 
 #### remove_by_category
 
-`remove_by_category(filter_word: Union[str, list]) -> None`
+`remove_by_category(categories: Union[str, list[str]]) -> None`
 
-Removes stream information with a category containing certain filter word/s.
+Removes stream information containing certain categories.
 
-- `filter_word`: The filter word/s to match against the category. It can be a string or a list of filter word/s.
+- `categories`: Category or list of categories to be removed from the streams information
 
 ```python
-parser.remove_by_category(filter_word)
+parser.remove_by_category(categories)
 ```
 
 #### retrieve_by_category
 
-`retrieve_by_category(filter_word: Union[str, list]) -> None`
+`retrieve_by_category(categories: Union[str, list[str]]) -> None`
 
-Selects only stream information with a category containing certain filter word/s.
+Selects only stream information containing certain categories.
 
-- `filter_word`: The filter word/s to match against the category. It can be a string or a list of filter word/s.
+- `categories`: Category or list of categories to be retrieved from the streams information.
 
 ```python
-parser.retrieve_by_category(filter_word)
+parser.retrieve_by_category(categories)
 ```
 
 #### sort_by

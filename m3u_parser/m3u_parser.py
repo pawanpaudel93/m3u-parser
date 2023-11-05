@@ -554,7 +554,7 @@ class M3uParser:
         """
         self._streams_info = self._streams_info_backup.copy()
 
-    def remove_by_extension(self, extension: Union[str, list]):
+    def remove_by_extension(self, extensions: Union[str, list[str]]):
         """
         Remove stream information with specific file extension(s).
 
@@ -562,14 +562,14 @@ class M3uParser:
         If the stream URL ends with the specified extension(s), it will be removed from the list.
 
         Args:
-            - `extension` (Union[str, list]): File extension or list of file extensions to be removed from the streams information.
+            - `extensions` (Union[str, list[str]]): File extension or list of file extensions to be removed from the streams information.
 
         Returns:
             None: The internal streams information list is updated, removing streams with the specified extension(s).
         """
-        self.filter_by("url", extension, FilterConfig(retrieve=False))
+        self.filter_by("url", extensions, FilterConfig(retrieve=False))
 
-    def retrieve_by_extension(self, extension: Union[str, list]):
+    def retrieve_by_extension(self, extensions: Union[str, list[str]]):
         """
         Retrieve streams information with specific file extension(s).
 
@@ -577,42 +577,42 @@ class M3uParser:
         Only streams with URLs ending with the specified extension(s) will be retained in the list.
 
         Args:
-            - `extension` (Union[str, list]): File extension or list of file extensions to be retrieved from the streams information.
+            - `extensions` (Union[str, list[str]]): File extension or list of file extensions to be retrieved from the streams information.
 
         Returns:
             None: The internal streams information list is updated, retaining only streams with the specified extension(s).
         """
-        self.filter_by("url", extension)
+        self.filter_by("url", extensions)
 
-    def remove_by_category(self, filter_word: Union[str, list]):
+    def remove_by_category(self, categories: Union[str, list[str]]):
         """
-        Remove streams information with specific category containing certain filter word(s).
+        Remove streams information with specific categories.
 
-        Removes stream information from the internal streams information list based on the specified category filter word(s).
-        If the category of a stream contains the provided filter word(s), that stream will be removed from the list.
+        Removes stream information from the internal streams information list based on the provided categories.
+        If the category of a stream contains the provided categories, that stream will be removed from the list.
 
         Args:
-            - `filter_word` (Union[str, list]): Filter word or list of filter words to match against stream categories.
+            - `categories` (Union[str, list[str]]): Category or list of categories to be removed from the streams information.
 
         Returns:
-            None: The internal streams information list is updated, removing streams with specified category filter word(s).
+            None: The internal streams information list is updated, removing streams with specified categories.
         """
-        self.filter_by("category", filter_word, FilterConfig(retrieve=False))
+        self.filter_by("category", categories, FilterConfig(retrieve=False))
 
-    def retrieve_by_category(self, filter_word: Union[str, list]):
+    def retrieve_by_category(self, categories: Union[str, list[str]]):
         """
-        Retrieve streams information with specific category containing certain filter word(s).
+        Retrieve streams information with specific categories.
 
-        Retrieves stream information from the internal streams information list based on the specified category filter word(s).
-        Only streams with categories containing the provided filter word(s) will be retained in the list.
+        Retrieves stream information from the internal streams information list based on the provided categories.
+        Only streams containing the provided categories will be retained in the list.
 
         Args:
-            - `filter_word` (Union[str, list]): Filter word or list of filter words to match against stream categories.
+            - `categories` (Union[str, list[str]]): Category or list of categories to be retrieved from the streams information.
 
         Returns:
-            None: The internal streams information list is updated, retaining only streams with specified category filter word(s).
+            None: The internal streams information list is updated, retaining only streams with specified categories.
         """
-        self.filter_by("category", filter_word)
+        self.filter_by("category", categories)
 
     def sort_by(self, key: str, config: SortConfig = SortConfig()):
         """
