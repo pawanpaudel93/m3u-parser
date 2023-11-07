@@ -10,7 +10,7 @@ package_root_directory = file.parents[1]
 sys.path.append(str(package_root_directory))
 
 from m3u_parser import FilterConfig, M3uParser, ParseConfig, SortConfig
-from m3u_parser.exceptions import KeyNotFoundException, NoStreamsException
+from m3u_parser.exceptions import KeyNotFoundException, NoStreamsException, ParamNotPassedException
 
 # Sample M3U content for testing
 SAMPLE_M3U_CONTENT = """
@@ -24,6 +24,16 @@ http://example.com/stream3
 #EXTINF:0,Dlf
 #EXTVLCOPT:network-caching=1000
 rtsp://10.0.0.1:554/?avm=1&freq=514&bw=8&msys=dvbc&mtype=256qam&sr=6900&specinv=0&pids=0,16,17,18,20,800,810,850
+"""
+
+DUPLICATE_M3U_CONTENT = """
+#EXTM3U
+#EXTINF:-1 tvg-id="Channel 1" tvg-logo="https://i.imgur.com/AvCQYgu.png" tvg-country="NP" tvg-language="Newari" group-title="News",Channel 1
+http://example.com/stream1
+#EXTINF:-1 tvg-id="Channel 1" tvg-logo="https://i.imgur.com/AvCQYgu.png" tvg-country="NP" tvg-language="Newari" group-title="News",Channel 1
+http://example.com/stream1
+#EXTINF:-1 tvg-id="Channel 2" tvg-logo="https://i.imgur.com/AvCQYgu.png" tvg-country="CN" tvg-language="Chinesee" group-title="News",Channel 2
+http://example.com/stream2
 """
 
 SAMPLE_JSON_CONTENT = json.dumps(
@@ -75,6 +85,14 @@ def temp_m3u_file(tmpdir):
     m3u_file = tmpdir.join("test.m3u")
     with open(m3u_file, "w") as f:
         f.write(SAMPLE_M3U_CONTENT)
+    return str(m3u_file)
+
+
+@pytest.fixture
+def temp_duplicate_m3u_file(tmpdir):
+    m3u_file = tmpdir.join("test.m3u")
+    with open(m3u_file, "w") as f:
+        f.write(DUPLICATE_M3U_CONTENT)
     return str(m3u_file)
 
 
@@ -247,3 +265,29 @@ class TestM3uParser:
         with pytest.raises(NoStreamsException):
             parser.parse_m3u(str(invalid_m3u_file))
             parser.get_random_stream()
+
+    def test_remove_specific_duplicates(self, temp_duplicate_m3u_file):
+        parser = M3uParser()
+        parser.parse_m3u(temp_duplicate_m3u_file, ParseConfig(check_live=False))
+        parser.remove_duplicates("Channel 1", "http://example.com/stream1")
+        streams = parser.get_list()
+        assert len(streams) == 2
+
+    def test_remove_all_duplicates(self, temp_duplicate_m3u_file):
+        parser = M3uParser()
+        parser.parse_m3u(temp_duplicate_m3u_file, ParseConfig(check_live=False))
+        parser.remove_duplicates()
+        streams = parser.get_list()
+        assert len(streams) == 2
+
+    def test_remove_duplicates_name_param_only(self, temp_duplicate_m3u_file):
+        parser = M3uParser()
+        parser.parse_m3u(temp_duplicate_m3u_file, ParseConfig(check_live=False))
+        with pytest.raises(ParamNotPassedException):
+            parser.remove_duplicates("Channel 1")
+
+    def test_remove_duplicates_url_param_only(self, temp_duplicate_m3u_file):
+        parser = M3uParser()
+        parser.parse_m3u(temp_duplicate_m3u_file, ParseConfig(check_live=False))
+        with pytest.raises(ParamNotPassedException):
+            parser.remove_duplicates(url="http://example.com/stream1")

@@ -38,3 +38,7 @@ class NoStreamsException(Exception):
     """Raised when streams information is not available."""
 
     pass
+
+
+class ParamNotPassedException(Exception):
+    """Raised when a parameter is not passed."""

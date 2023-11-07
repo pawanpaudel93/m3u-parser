@@ -22,6 +22,7 @@ from .exceptions import (
     SavingNotSupportedException,
     UnrecognizedFormatException,
     UrlReadException,
+    ParamNotPassedException,
 )
 from .helper import (
     default_useragent,
@@ -652,6 +653,60 @@ class M3uParser:
             else (stream_info[key] is not None, stream_info[key]),
             reverse=not config.asc,
         )
+
+    def remove_duplicates(self, name: str = None, url: str = None):
+        """
+        Removes duplicate stream entries based on the provided 'name' pattern and exact 'url' match or
+        remove all duplicates if name and url is not provided.
+
+        Args:
+            - `name` (str, optional): The name pattern to filter duplicates. Defaults to None.
+            - `url` (str, optional): The exact URL to filter duplicates. Defaults to None.
+
+        Returns:
+            - `self`: The modified object after removing duplicate stream entries.
+        """
+        if name is None and url is not None:
+            raise ParamNotPassedException(f"Param name is not passed.")
+
+        if name is not None and url is None:
+            raise ParamNotPassedException(f"Param url is not passed.")
+
+        filtered_streams = []
+        seen_entries = set()
+
+        name_pattern = re.compile(name, re.IGNORECASE) if name else None
+
+        for stream_info in self._streams_info:
+            stream_name = stream_info.get("name")
+            stream_url = stream_info.get("url")
+
+            both_none = name is None and url is None
+
+            if (
+                (stream_name is not None and name_pattern is not None and re.search(name_pattern, stream_name))
+                and (stream_url is not None and stream_url.lower() == url.lower())
+            ) or both_none:
+                is_found = False
+                unique_key = (stream_name.lower(), stream_url.lower())
+
+                if both_none:
+                    is_found = unique_key in seen_entries
+                else:
+                    for seen_name, seen_url in seen_entries:
+                        if re.search(name_pattern, seen_name) and seen_url == stream_url.lower():
+                            is_found = True
+                            break
+
+                if not is_found:
+                    seen_entries.add(unique_key)
+                    filtered_streams.append(stream_info)
+            else:
+                filtered_streams.append(stream_info)
+
+        self._streams_info = filtered_streams
+
+        return self
 
     def get_json(self, indent: int = 4):
         """

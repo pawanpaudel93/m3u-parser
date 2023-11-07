@@ -187,6 +187,21 @@ Sorts the streams information based on a key in ascending or descending order.
 parser.sort_by(key, SortConfig(key_splitter="-", asc=True, nested_key=False))
 ```
 
+#### remove_duplicates
+
+`remove_duplicates(self, name: str = None, url: str = None) -> self`
+
+Removes duplicate stream entries based on the provided 'name' pattern and exact 'url' match or remove all duplicates if name and url is not provided.
+  
+- `name` (str, optional): The name pattern to filter duplicates. Defaults to None.
+- `url` (str, optional): The exact URL to filter duplicates. Defaults to None.
+
+```python
+parser.remove_duplicates()
+# or
+parser.remove_duplicates("Channel 1", "http://example.com/stream1")
+```
+
 ### get_json
 
 `get_json(indent: int = 4) -> str`
