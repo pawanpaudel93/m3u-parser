@@ -7,11 +7,12 @@ import random
 import re
 import ssl
 import time
+import string
 from typing import Union
 
 import aiohttp
 import pycountry
-import requests
+import urllib.request
 
 from .exceptions import (
     KeyNotFoundException,
@@ -29,7 +30,6 @@ from .helper import (
     is_valid_url,
     ndict_to_csv,
     run_until_completed,
-    schemes,
     setup_logger,
 )
 
@@ -89,7 +89,18 @@ class M3uParser:
         if is_valid_url(path):
             logger.info(f"Started parsing {type} link...")
             try:
-                content = requests.get(path).text
+                with urllib.request.urlopen(path) as response:
+                    content_type = response.getheader('Content-Type')
+                    content = response.read()
+                    try:
+                        encoding = (
+                            content_type.split('charset=')[-1].split(";")[0].strip(string.whitespace + "'\" ")
+                            if (content_type and 'charset=' in content_type)
+                            else "utf-8"
+                        )
+                        content = content.decode(encoding)
+                    except:
+                        content = content.decode("utf-8")
             except:
                 raise UrlReadException("Cannot read anything from the url.")
         else:

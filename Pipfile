@@ -13,7 +13,6 @@ python-semantic-release = "*"
 
 [packages]
 pycountry = "*"
-requests = "*"
 aiohttp = "*"
 asyncio = "*"
 
