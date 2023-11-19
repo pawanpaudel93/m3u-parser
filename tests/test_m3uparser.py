@@ -9,7 +9,7 @@ file = Path(__file__).resolve()
 package_root_directory = file.parents[1]
 sys.path.append(str(package_root_directory))
 
-from m3u_parser import FilterConfig, M3uParser, ParseConfig, SortConfig
+from m3u_parser import M3uParser
 from m3u_parser.exceptions import KeyNotFoundException, NoStreamsException, ParamNotPassedException
 
 # Sample M3U content for testing
@@ -119,7 +119,7 @@ class TestM3uParser:
     # Test parsing of M3U content
     def test_parse_m3u(self, temp_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_m3u_file, check_live=False)
         streams = parser.get_list()
         assert len(streams) == 3
 
@@ -128,27 +128,29 @@ class TestM3uParser:
         parser = M3uParser()
         parser.parse_m3u(
             temp_m3u_file,
-            ParseConfig(check_live=True, schemes=["http", "https", "rtsp"], status_checker={"rtsp": rtsp_checker}),
+            check_live=True,
+            schemes=["http", "https", "rtsp"],
+            status_checker={"rtsp": rtsp_checker},
         )
         streams = parser.get_list()
         assert len(streams) == 4
 
     def test_parse_json(self, temp_json_file):
         parser = M3uParser()
-        parser.parse_json(temp_json_file, ParseConfig(check_live=False))
+        parser.parse_json(temp_json_file, check_live=False)
         streams = parser.get_list()
         assert len(streams) == 3
 
     def test_parse_csv(self, temp_csv_file):
         parser = M3uParser()
-        parser.parse_csv(temp_csv_file, ParseConfig(check_live=False))
+        parser.parse_csv(temp_csv_file, check_live=False)
         streams = parser.get_list()
         assert len(streams) == 3
 
     # Test filtering by extension
     def test_filter_by_extension(self, temp_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_m3u_file, check_live=False)
         parser.retrieve_by_extension('mp4')
         streams = parser.get_list()
         assert len(streams) == 0
@@ -157,14 +159,14 @@ class TestM3uParser:
     def test_filter_by_nested_key(self, temp_m3u_file):
         parser = M3uParser()
         parser.parse_m3u(temp_m3u_file)
-        parser.filter_by('language.code', None, FilterConfig(key_splitter=".", retrieve=False, nested_key=True))
+        parser.filter_by('language.code', None, key_splitter=".", retrieve=False, nested_key=True)
         streams = parser.get_list()
         assert len(streams) == 2
 
     # Test filtering by invalid category
     def test_filter_by_invalid_category(self, temp_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_m3u_file, check_live=False)
         parser.filter_by('category', 'Invalid')
         streams = parser.get_list()
         assert len(streams) == 0
@@ -172,14 +174,14 @@ class TestM3uParser:
     # Test filtering by invalid category
     def test_filter_by_invalid_key(self, temp_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_m3u_file, check_live=False)
         with pytest.raises(KeyNotFoundException):
             parser.filter_by('invalid', 'Invalid')
 
     # Test filtering by live
     def test_filter_by_live(self, temp_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=True, schemes=["http", "https", "rtsp"]))
+        parser.parse_m3u(temp_m3u_file, check_live=True, schemes=["http", "https", "rtsp"])
         parser.filter_by("live", False)
         streams = parser.get_list()
         assert len(streams) == 4
@@ -187,14 +189,14 @@ class TestM3uParser:
     # Test filtering by live when check_live is False
     def test_filter_by_live_when_check_live_false(self, temp_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False, schemes=["http", "https", "rtsp"]))
+        parser.parse_m3u(temp_m3u_file, check_live=False, schemes=["http", "https", "rtsp"])
         with pytest.raises(KeyNotFoundException):
             parser.filter_by("live", False)
 
     # Test sorting by stream name in ascending order
     def test_sort_by_name_asc(self, temp_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_m3u_file, check_live=False)
         parser.sort_by('name')
         streams = parser.get_list()
         assert streams[0]['name'] == 'Channel 1'
@@ -204,8 +206,8 @@ class TestM3uParser:
     # Test sorting by stream name in descending order
     def test_sort_by_name_desc(self, temp_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
-        parser.sort_by('name', SortConfig(asc=False))
+        parser.parse_m3u(temp_m3u_file, check_live=False)
+        parser.sort_by('name', asc=False)
         streams = parser.get_list()
         assert streams[0]['name'] == 'Channel 3'
         assert streams[1]['name'] == 'Channel 2'
@@ -214,7 +216,7 @@ class TestM3uParser:
     # Test resetting operations
     def test_reset_operations(self, temp_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_m3u_file, check_live=False)
         parser.retrieve_by_extension('mp4')
         parser.reset_operations()
         streams = parser.get_list()
@@ -224,7 +226,7 @@ class TestM3uParser:
     def test_save_to_json(self, temp_m3u_file, tmpdir):
         json_file = tmpdir.join("output.json")
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_m3u_file, check_live=False)
         parser.to_file(str(json_file), format="json")
         print(json_file)
         assert os.path.exists(str(json_file))
@@ -234,7 +236,7 @@ class TestM3uParser:
     def test_save_to_csv(self, temp_m3u_file, tmpdir):
         csv_file = tmpdir.join("output.csv")
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_m3u_file, check_live=False)
         parser.to_file(str(csv_file), format="csv")
         print(csv_file)
         assert os.path.exists(str(csv_file))
@@ -243,7 +245,7 @@ class TestM3uParser:
     # Test filtering by category
     def test_filter_by_category(self, temp_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_m3u_file, check_live=False)
         parser.remove_by_category('News')
         streams = parser.get_list()
         assert len(streams) == 0
@@ -251,7 +253,7 @@ class TestM3uParser:
     # Test retrieving by category
     def test_retrieve_by_category(self, temp_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_m3u_file, check_live=False)
         parser.retrieve_by_category('News')
         streams = parser.get_list()
         assert len(streams) == 3
@@ -268,26 +270,26 @@ class TestM3uParser:
 
     def test_remove_specific_duplicates(self, temp_duplicate_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_duplicate_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_duplicate_m3u_file, check_live=False)
         parser.remove_duplicates("Channel 1", "http://example.com/stream1")
         streams = parser.get_list()
         assert len(streams) == 2
 
     def test_remove_all_duplicates(self, temp_duplicate_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_duplicate_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_duplicate_m3u_file, check_live=False)
         parser.remove_duplicates()
         streams = parser.get_list()
         assert len(streams) == 2
 
     def test_remove_duplicates_name_param_only(self, temp_duplicate_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_duplicate_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_duplicate_m3u_file, check_live=False)
         with pytest.raises(ParamNotPassedException):
             parser.remove_duplicates("Channel 1")
 
     def test_remove_duplicates_url_param_only(self, temp_duplicate_m3u_file):
         parser = M3uParser()
-        parser.parse_m3u(temp_duplicate_m3u_file, ParseConfig(check_live=False))
+        parser.parse_m3u(temp_duplicate_m3u_file, check_live=False)
         with pytest.raises(ParamNotPassedException):
             parser.remove_duplicates(url="http://example.com/stream1")

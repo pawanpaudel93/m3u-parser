@@ -7,7 +7,6 @@ import random
 import re
 import ssl
 import time
-from dataclasses import dataclass, field
 from typing import Union
 
 import aiohttp
@@ -39,71 +38,6 @@ ssl.match_hostname = lambda cert, hostname: hostname == cert["subjectAltName"][0
 logger = setup_logger()
 
 
-@dataclass
-class ParseConfig:
-    """
-    Configuration options for parsing M3U data.
-
-    Attributes:
-        - `schemes` (list): A list of allowed URL schemes. Default is ["http", "https", "ftp", "ftps"].
-        - `status_checker` (dict): A dictionary mapping URL schemes to custom status checker functions.
-        - `check_live` (bool): Indicates whether to check the status of live streams (default is True).
-        - `enforce_schema` (bool): Indicates whether to enforce a specific schema for parsed data.
-            If enforced, non-existing fields in a stream are filled with None/null.
-            If not enforced, non-existing fields are ignored.
-
-    Example::
-
-        async def ftp_checker(url: str) -> bool:
-            # Checker implementation
-            # Return either True for good status or False for bad status
-            return True
-
-        config = ParseConfig(schemes=['http', 'https', 'ftp'], status_checker={"ftp": ftp_checker}, check_live=True, enforce_schema=True)
-    """
-
-    schemes: list = field(default_factory=list)
-    status_checker: dict = field(default_factory=dict)
-    check_live: bool = True
-    enforce_schema: bool = True
-
-    def __post_init__(self):
-        if not self.schemes:
-            self.schemes = schemes
-
-
-@dataclass
-class FilterConfig:
-    """
-    Configuration options for filtering stream information.
-
-    Attributes:
-        - `key_splitter` (str): A string used to split nested keys (default is "-").
-        - `retrieve` (bool): Indicates whether to retrieve or remove based on the filter key (default is True).
-        - `nested_key` (bool): Indicates whether the filter key is nested or not (default is False).
-    """
-
-    key_splitter: str = "-"
-    retrieve: bool = True
-    nested_key: bool = False
-
-
-@dataclass
-class SortConfig:
-    """
-    Configuration options for sorting stream information.
-
-    Attributes:
-        - `key_splitter` (str): A string used to split nested keys (default is "-").
-        - `asc` (bool): Indicates whether to sort in ascending (True) or descending (False) order (default is True).
-        - `nested_key` (bool): Indicates whether the sort key is nested or not (default is False).
-    """
-
-    key_splitter: str = "-"
-    asc: bool = True
-    nested_key: bool = False
-
-
 class M3uParser:
     """A parser for m3u files.
 
@@ -133,7 +67,7 @@ class M3uParser:
         self._streams_info = []
         self._streams_info_backup = []
         self._lines = []
-        self._parse_config = ParseConfig()
+        self._status_checker = {}
         self._schemes = set()
         self._timeout = aiohttp.ClientTimeout(total=timeout)
         self._loop = None
@@ -216,7 +150,7 @@ class M3uParser:
         stream_info = self._streams_info[index]
         stream_url = stream_info.get("url")
         scheme = stream_url.split('://')[0].lower()
-        status_fn = self._parse_config.status_checker.get(scheme)
+        status_fn = self._status_checker.get(scheme)
         if status_fn is None or not callable(status_fn):
             status_fn = self._get_status
         stream_info["status"] = "GOOD" if await status_fn(stream_url) == True else "BAD"
@@ -293,7 +227,7 @@ class M3uParser:
 
             if self._check_live and status == "BAD":
                 scheme = stream_link.split('://')[0].lower()
-                status_fn = self._parse_config.status_checker.get(scheme)
+                status_fn = self._status_checker.get(scheme)
                 if status_fn is None or not callable(status_fn):
                     status_fn = self._get_status
                 status = "GOOD" if await status_fn(stream_link) == True else "BAD"
@@ -336,7 +270,10 @@ class M3uParser:
     def parse_m3u(
         self,
         data_source: str,
-        config: ParseConfig = ParseConfig(),
+        schemes=['http', 'https', 'ftp', 'ftps'],
+        status_checker=dict(),
+        check_live=True,
+        enforce_schema=True,
     ):
         """
         Parses the content of a local M3U file or URL.
@@ -346,7 +283,12 @@ class M3uParser:
 
         Args:
             - `data_source` (str): The file path or URL of the M3U file to be parsed.
-            - `config` (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
+            - `schemes` (list): A list of allowed URL schemes. Default is ["http", "https", "ftp", "ftps"].
+            - `status_checker` (dict): A dictionary mapping URL schemes to custom status checker functions.
+            - `check_live` (bool): Indicates whether to check the status of live streams (default is True).
+            - `enforce_schema` (bool): Indicates whether to enforce a specific schema for parsed data.
+                If enforced, non-existing fields in a stream are filled with None/null.
+                If not enforced, non-existing fields are ignored.
 
         Raises:
             - `NoContentToParseException`: Raised if there is no content to parse in the M3U file.
@@ -355,12 +297,21 @@ class M3uParser:
 
         Returns:
             None: The parsed streams information is stored internally and can be accessed using other methods.
+
+        Example::
+
+            async def ftp_checker(url: str) -> bool:
+                # Checker implementation
+                # Return either True for good status or False for bad status
+                return True
+
+            parse_m3u("https://example.com/np.m3u", schemes=['http', 'https', 'ftp'], status_checker={"ftp": ftp_checker}, check_live=True, enforce_schema=True)
         """
         content = ""
-        self._check_live = config.check_live
-        self._enforce_schema = config.enforce_schema
-        self._parse_config = config
-        self._schemes = set(config.schemes)
+        self._check_live = check_live
+        self._enforce_schema = enforce_schema
+        self._status_checker = status_checker
+        self._schemes = set(schemes)
 
         content = self._read_content(data_source, "m3u")
 
@@ -371,7 +322,14 @@ class M3uParser:
         else:
             raise NoContentToParseException("No content to parse.")
 
-    def parse_json(self, data_source: str, config: ParseConfig = ParseConfig()):
+    def parse_json(
+        self,
+        data_source: str,
+        schemes=['http', 'https', 'ftp', 'ftps'],
+        status_checker=dict(),
+        check_live=True,
+        enforce_schema=True,
+    ):
         """
         Parses the content of a local JSON file or JSON URL.
 
@@ -381,7 +339,12 @@ class M3uParser:
 
         Args:
             - `data_source` (str): The file path or URL of the JSON file containing streams information.
-            - `config` (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
+            - `schemes` (list): A list of allowed URL schemes. Default is ["http", "https", "ftp", "ftps"].
+            - `status_checker` (dict): A dictionary mapping URL schemes to custom status checker functions.
+            - `check_live` (bool): Indicates whether to check the status of live streams (default is True).
+            - `enforce_schema` (bool): Indicates whether to enforce a specific schema for parsed data.
+                If enforced, non-existing fields in a stream are filled with None/null.
+                If not enforced, non-existing fields are ignored.
 
         Raises:
             - `UrlReadException`: Raised when there is an issue reading content from a URL.
@@ -389,12 +352,22 @@ class M3uParser:
 
         Returns:
             None: The parsed streams information is stored internally and can be accessed using other methods.
+
+        Example::
+
+            async def ftp_checker(url: str) -> bool:
+                # Checker implementation
+                # Return either True for good status or False for bad status
+                return True
+
+            parse_json("https://example.com/np.json", schemes=['http', 'https', 'ftp'], status_checker={"ftp": ftp_checker}, check_live=True, enforce_schema=True)
+
         """
         content = ""
-        self._check_live = config.check_live
-        self._enforce_schema = config.enforce_schema
-        self._parse_config = config
-        self._schemes = set(config.schemes)
+        self._check_live = check_live
+        self._enforce_schema = enforce_schema
+        self._status_checker = status_checker
+        self._schemes = set(schemes)
 
         content = self._read_content(data_source, "json")
 
@@ -421,7 +394,14 @@ class M3uParser:
             ]
         self._check_streams_status()
 
-    def parse_csv(self, data_source: str, config: ParseConfig = ParseConfig()):
+    def parse_csv(
+        self,
+        data_source: str,
+        schemes=['http', 'https', 'ftp', 'ftps'],
+        status_checker=dict(),
+        check_live=True,
+        enforce_schema=True,
+    ):
         """
         Parses the content of a local CSV file or CSV URL.
 
@@ -431,7 +411,12 @@ class M3uParser:
 
         Args:
             - `data_source` (str): The file path or URL of the CSV file containing streams information.
-            - `config` (ParseConfig, optional): Configuration options for parsing. Defaults to ParseConfig().
+            - `schemes` (list): A list of allowed URL schemes. Default is ["http", "https", "ftp", "ftps"].
+            - `status_checker` (dict): A dictionary mapping URL schemes to custom status checker functions.
+            - `check_live` (bool): Indicates whether to check the status of live streams (default is True).
+            - `enforce_schema` (bool): Indicates whether to enforce a specific schema for parsed data.
+                If enforced, non-existing fields in a stream are filled with None/null.
+                If not enforced, non-existing fields are ignored.
 
         Raises:
             - `UrlReadException`: Raised when there is an issue reading content from a URL.
@@ -439,12 +424,21 @@ class M3uParser:
 
         Returns:
             None: The parsed streams information is stored internally and can be accessed using other methods.
+
+        Example::
+
+            async def ftp_checker(url: str) -> bool:
+                # Checker implementation
+                # Return either True for good status or False for bad status
+                return True
+
+            parse_csv("https://example.com/np.csv", schemes=['http', 'https', 'ftp'], status_checker={"ftp": ftp_checker}, check_live=True, enforce_schema=True)
         """
         content = ""
-        self._check_live = config.check_live
-        self._enforce_schema = config.enforce_schema
-        self._parse_config = config
-        self._schemes = set(config.schemes)
+        self._check_live = check_live
+        self._enforce_schema = enforce_schema
+        self._status_checker = status_checker
+        self._schemes = set(schemes)
 
         content = self._read_content(data_source, "csv")
 
@@ -475,7 +469,9 @@ class M3uParser:
         self,
         key: str,
         filters: Union[str, list[Union[str, None, bool]], None, bool],
-        config: FilterConfig = FilterConfig(),
+        key_splitter: str = "-",
+        retrieve: bool = True,
+        nested_key: bool = False,
     ):
         """
         Filter streams information based on a specific key and filter criteria.
@@ -486,7 +482,9 @@ class M3uParser:
         Args:
             - `key` (str): The key to filter by. It can be a nested key separated by a splitter if 'nested_key' is True in config.
             - `filters` (Union[str, list[Union[str, None, bool]], None, bool]): Filter word or list of filter words to perform the filtering operation.
-            - `config` (FilterConfig, optional): Configuration options for filtering. Defaults to FilterConfig().
+            - `key_splitter` (str): A string used to split nested keys (default is "-").
+            - `retrieve` (bool): Indicates whether to retrieve or remove based on the filter key (default is True).
+            - `nested_key` (bool): Indicates whether the filter key is nested or not (default is False).
 
         Raises:
             - `NestedKeyException`: Raised if 'nested_key' is True but the key is not in the correct format.
@@ -496,9 +494,9 @@ class M3uParser:
             None: The internal streams information list is updated based on the filtering criteria.
         """
         key_0, key_1 = [key, ""]
-        if config.nested_key:
+        if nested_key:
             try:
-                key_0, key_1 = key.split(config.key_splitter)
+                key_0, key_1 = key.split(key_splitter)
             except ValueError:
                 raise NestedKeyException("Nested key must be in the format <key><key_splitter><nested_key>.")
             if self._streams_info and (
@@ -509,11 +507,11 @@ class M3uParser:
             raise KeyNotFoundException(f"Key '{key}' is not present in the streams.")
         if not isinstance(filters, list):
             filters = [filters]
-        any_or_all = any if config.retrieve else all
-        not_operator = lambda x: x if config.retrieve else not x
+        any_or_all = any if retrieve else all
+        not_operator = lambda x: x if retrieve else not x
 
         def check_filter(stream_info, fltr):
-            value = stream_info.get(key_0, {}).get(key_1) if config.nested_key else stream_info.get(key)
+            value = stream_info.get(key_0, {}).get(key_1) if nested_key else stream_info.get(key)
             logger.info(f"Filter: {fltr}, Value: {value}")
             # Case 1: Both filter and value are None, return True
             if fltr is None and value is None:
@@ -568,7 +566,7 @@ class M3uParser:
         Returns:
             None: The internal streams information list is updated, removing streams with the specified extension(s).
         """
-        self.filter_by("url", extensions, FilterConfig(retrieve=False))
+        self.filter_by("url", extensions, retrieve=False)
 
     def retrieve_by_extension(self, extensions: Union[str, list[str]]):
         """
@@ -598,7 +596,7 @@ class M3uParser:
         Returns:
             None: The internal streams information list is updated, removing streams with specified categories.
         """
-        self.filter_by("category", categories, FilterConfig(retrieve=False))
+        self.filter_by("category", categories, retrieve=False)
 
     def retrieve_by_category(self, categories: Union[str, list[str]]):
         """
@@ -615,7 +613,13 @@ class M3uParser:
         """
         self.filter_by("category", categories)
 
-    def sort_by(self, key: str, config: SortConfig = SortConfig()):
+    def sort_by(
+        self,
+        key: str,
+        key_splitter: str = "-",
+        asc: bool = True,
+        nested_key: bool = False,
+    ):
         """
         Sorts the internal streams information list based on a specific key.
 
@@ -624,7 +628,9 @@ class M3uParser:
 
         Args:
             - `key` (str): The key to sort by. It can be a nested key separated by a splitter if 'nested_key' is True in config.
-            - `config` (SortConfig, optional): Configuration options for sorting. Defaults to SortConfig().
+            - `key_splitter` (str): A string used to split nested keys (default is "-").
+            - `asc` (bool): Indicates whether to sort in ascending (True) or descending (False) order (default is True).
+            - `nested_key` (bool): Indicates whether the sort key is nested or not (default is False).
 
         Raises:
             - `NestedKeyException`: Raised if 'nested_key' is True but the key is not in the correct format.
@@ -634,9 +640,9 @@ class M3uParser:
             None: The internal streams information list is sorted based on the specified key and configuration.
         """
         key_0, key_1 = [key, ""]
-        if config.nested_key:
+        if nested_key:
             try:
-                key_0, key_1 = key.split(config.key_splitter)
+                key_0, key_1 = key.split(key_splitter)
             except ValueError:
                 raise NestedKeyException("Nested key must be in the format <key><key_splitter><nested_key>.")
             if self._streams_info and (
@@ -649,9 +655,9 @@ class M3uParser:
         self._streams_info = sorted(
             self._streams_info,
             key=lambda stream_info: (stream_info[key_0][key_1] is not None, stream_info[key_0][key_1])
-            if config.nested_key
+            if nested_key
             else (stream_info[key] is not None, stream_info[key]),
-            reverse=not config.asc,
+            reverse=not asc,
         )
 
     def remove_duplicates(self, name: str = None, url: str = None):

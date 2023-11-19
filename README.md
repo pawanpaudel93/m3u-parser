@@ -65,55 +65,105 @@ parser = M3uParser(useragent=default_useragent, timeout=5)
 
 #### parse_m3u
 
-`parse_m3u(data_source: str, config: ParseConfig = ParseConfig()) -> None`
+`parse_m3u(data_source: str,
+    schemes=['http', 'https', 'ftp', 'ftps'],
+    status_checker=dict(),
+    check_live=True,
+    enforce_schema=True) -> None`
 
 Parses the content of a local file or URL and extracts the streams information.
 
 - `data_source`: The path to the m3u file, which can be a local file path or a URL.
-- `config` (optional): Configuration options for parsing. Defaults to ParseConfig().
+- `schemes` (list): A list of allowed URL schemes.
+- `status_checker` (dict): A dictionary mapping URL schemes to custom status checker functions.
+- `check_live` (bool): Indicates whether to check the status of live streams (default is True).
+- `enforce_schema` (bool): Indicates whether to enforce a specific schema for parsed data.
+  - If enforced, non-existing fields in a stream are filled with None/null.
+  - If not enforced, non-existing fields are ignored.
+
+You can define your own custom status checker function for schemes. If no status checker is defined, then the default status checker is used. The default status checker works for `http` and `https` url schemes only.
 
 ```python
-parser.parse_m3u(path, ParseConfig(check_live=True, enforce_schema=True))
+async def ftp_checker(url: str) -> bool:
+    # Checker implementation
+    # Return either True for good status or False for bad status
+    return True
+
+parser.parse_m3u(path, schemes=['http', 'https', 'ftp'], status_checker={"ftp": ftp_checker}, check_live=True, enforce_schema=True)
 ```
 
 #### parse_json
 
-`parse_json(data_source: str, config: ParseConfig = ParseConfig()) -> None`
+`parse_json(data_source: str,
+    schemes=['http', 'https', 'ftp', 'ftps'],
+    status_checker=dict(),
+    check_live=True,
+    enforce_schema=True) -> None`
 
 Parses the content of a local file or URL and extracts the streams information.
 
 - `data_source`: The path to the json file, which can be a local file path or a URL.
-- `config` (optional): Configuration options for parsing. Defaults to ParseConfig().
+- `schemes` (list): A list of allowed URL schemes.
+- `status_checker` (dict): A dictionary mapping URL schemes to custom status checker functions.
+- `check_live` (bool): Indicates whether to check the status of live streams (default is True).
+- `enforce_schema` (bool): Indicates whether to enforce a specific schema for parsed data.
+  - If enforced, non-existing fields in a stream are filled with None/null.
+  - If not enforced, non-existing fields are ignored.
+
+You can define your own custom status checker function for schemes. If no status checker is defined, then the default status checker is used. The default status checker works for `http` and `https` url schemes only.
 
 ```python
-parser.parse_json(path, ParseConfig(check_live=True, enforce_schema=True))
+async def ftp_checker(url: str) -> bool:
+    # Checker implementation
+    # Return either True for good status or False for bad status
+    return True
+
+parser.parse_json(path, schemes=['http', 'https', 'ftp'], status_checker={"ftp": ftp_checker}, check_live=True, enforce_schema=True)
 ```
 
 #### parse_csv
 
-`parse_csv(data_source: str, config: ParseConfig = ParseConfig()) -> None`
+`parse_csv(data_source: str,
+    schemes=['http', 'https', 'ftp', 'ftps'],
+    status_checker=dict(),
+    check_live=True,
+    enforce_schema=True) -> None`
 
 Parses the content of a local file or URL and extracts the streams information.
 
 - `data_source`: The path to the csv file, which can be a local file path or a URL.
-- `config` (optional): Configuration options for parsing. Defaults to ParseConfig().
+- `schemes` (list): A list of allowed URL schemes.
+- `status_checker` (dict): A dictionary mapping URL schemes to custom status checker functions.
+- `check_live` (bool): Indicates whether to check the status of live streams (default is True).
+- `enforce_schema` (bool): Indicates whether to enforce a specific schema for parsed data.
+  - If enforced, non-existing fields in a stream are filled with None/null.
+  - If not enforced, non-existing fields are ignored.
+
+You can define your own custom status checker function for schemes. If no status checker is defined, then the default status checker is used. The default status checker works for `http` and `https` url schemes only.
 
 ```python
-parser.parse_csv(path, ParseConfig(check_live=True, enforce_schema=True))
+async def ftp_checker(url: str) -> bool:
+    # Checker implementation
+    # Return either True for good status or False for bad status
+    return True
+
+parser.parse_csv(path, schemes=['http', 'https', 'ftp'], status_checker={"ftp": ftp_checker}, check_live=True, enforce_schema=True)
 ```
 
 #### filter_by
 
-`filter_by(key: str, filters: Union[str, list[Union[str, None, bool]], None, bool], config: FilterConfig = FilterConfig()) -> None`
+`filter_by(key: str, filters: Union[str, list[Union[str, None, bool]], None, bool], key_splitter: str = "-", retrieve: bool = True, nested_key: bool = False,) -> None`
 
 Filters the streams information based on a key and filter/s.
 
 - `key`: The key to filter on, can be a single key or nested key (e.g., "language-name").
 - `filters`: The filter word/s to perform the filtering operation.
-- `config` (optional): Configuration options for filtering. Defaults to FilterConfig().
+- `key_splitter` (str): A string used to split nested keys (default is "-").
+- `retrieve` (bool): Indicates whether to retrieve or remove based on the filter key (default is True).
+- `nested_key` (bool): Indicates whether the filter key is nested or not (default is False).
 
 ```python
-parser.filter_by(key, filters, FilterConfig(key_splitter="-", retrieve=True, nested_key=False))
+parser.filter_by(key, filters, key_splitter="-", retrieve=True, nested_key=False)
 ```
 
 #### reset_operations
@@ -176,15 +226,17 @@ parser.retrieve_by_category(categories)
 
 #### sort_by
 
-`sort_by(key: str, config: SortConfig = SortConfig()) -> None`
+`sort_by(key: str, key_splitter: str = "-", asc: bool = True, nested_key: bool = False) -> None`
 
 Sorts the streams information based on a key in ascending or descending order.
 
 - `key`: The key to sort on, can be a single key or nested key seperated by `key_splitter` (e.g., "language-name").
-- `config` (optional): Configuration options for sorting. Defaults to SortConfig().
+- `key_splitter` (str): A string used to split nested keys (default is "-").
+- `asc` (bool): Indicates whether to sort in ascending (True) or descending (False) order (default is True).
+- `nested_key` (bool): Indicates whether the sort key is nested or not (default is False).
 
 ```python
-parser.sort_by(key, SortConfig(key_splitter="-", asc=True, nested_key=False))
+parser.sort_by(key, key_splitter="-", asc=True, nested_key=False)
 ```
 
 #### remove_duplicates
@@ -236,47 +288,6 @@ Saves the streams information to a file in the specified format.
 ```python
 parser.to_file(filename, format="json")
 ```
-
-`ParseConfig`
-Configuration options for parsing M3U data.
-
-Attributes:
-
-- schemes (list): A list of allowed URL schemes.
-- status_checker (dict): A dictionary mapping URL schemes to custom status checker functions.
-- check_live (bool): Indicates whether to check the status of live streams (default is True).
-- enforce_schema (bool): Indicates whether to enforce a specific schema for parsed data.
-  - If enforced, non-existing fields in a stream are filled with None/null.
-  - If not enforced, non-existing fields are ignored.
-
-You can define your own custom status checker function for schemes. If no status checker is defined, then the default status checker is used. The default status checker works for `http` and `https` url schemes only.
-
-```python
-async def ftp_checker(url: str) -> bool:
-    # Checker implementation
-    # Return either True for good status or False for bad status
-    return True
-
-config = ParseConfig(schemes=['http', 'https', 'ftp'], status_checker={"ftp": ftp_checker}, check_live=True, enforce_schema=True)
-```
-
-`FilterConfig`
-Configuration options for filtering stream information.
-
-Attributes:
-
-- key_splitter (str): A string used to split nested keys (default is "-").
-- retrieve (bool): Indicates whether to retrieve or remove based on the filter key (default is True).
-- nested_key (bool): Indicates whether the filter key is nested or not (default is False).
-
-`SortConfig`
-Configuration options for sorting stream information.
-
-Attributes:
-
-- key_splitter (str): A string used to split nested keys (default is "-").
-- asc (bool): Indicates whether to sort in ascending (True) or descending (False) order (default is True).
-- nested_key (bool): Indicates whether the sort key is nested or not (default is False).
 
 ## Other Implementations
 
