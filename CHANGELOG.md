@@ -2,8 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
-
 ## [0.1.9] - 2021-12-30
 
 ### Fixed
@@ -21,3 +19,10 @@ All notable changes to this project will be documented in this file.
 ## [0.3.0] - 2023-06-06
 
 - Add methods to parse content from CSV/JSON file/url
+
+## [0.4.0] - 2023-11-20
+
+### Features
+
+- Add schemes support with status checker.
+- Add `remove_duplicates` method to remove the duplicates by (name or name pattern, url).
