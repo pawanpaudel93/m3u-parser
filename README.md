@@ -65,11 +65,14 @@ parser = M3uParser(useragent=default_useragent, timeout=5)
 
 #### parse_m3u
 
-`parse_m3u(data_source: str,
+```python
+parse_m3u(data_source: str,
     schemes=['http', 'https'],
     status_checker=dict(),
     check_live=True,
-    enforce_schema=True) -> M3uParser`
+    enforce_schema=True
+) -> `M3uParser`
+```
 
 Parses the content of a local file or URL and extracts the streams information.
 
@@ -94,11 +97,14 @@ parser.parse_m3u(path, schemes=['http', 'https', 'ftp'], status_checker={"ftp": 
 
 #### parse_json
 
-`parse_json(data_source: str,
+```python
+parse_json(data_source: str,
     schemes=['http', 'https'],
     status_checker=dict(),
     check_live=True,
-    enforce_schema=True) -> M3uParser`
+    enforce_schema=True
+) -> 'M3uParser'
+```
 
 Parses the content of a local file or URL and extracts the streams information.
 
@@ -123,11 +129,14 @@ parser.parse_json(path, schemes=['http', 'https', 'ftp'], status_checker={"ftp":
 
 #### parse_csv
 
-`parse_csv(data_source: str,
+```python
+parse_csv(data_source: str,
     schemes=['http', 'https'],
     status_checker=dict(),
     check_live=True,
-    enforce_schema=True) -> M3uParser`
+    enforce_schema=True
+) -> 'M3uParser'
+```
 
 Parses the content of a local file or URL and extracts the streams information.
 
@@ -152,7 +161,14 @@ parser.parse_csv(path, schemes=['http', 'https', 'ftp'], status_checker={"ftp": 
 
 #### filter_by
 
-`filter_by(key: str, filters: Union[str, list[Union[str, None, bool]], None, bool], key_splitter: str = "-", retrieve: bool = True, nested_key: bool = False,) -> M3uParser`
+```python
+filter_by(key: str,
+    filters: Union[str, list[Union[str, None, bool]], None, bool],
+    key_splitter: str = "-",
+    retrieve: bool = True,
+    nested_key: bool = False
+) -> 'M3uParser'
+```
 
 Filters the streams information based on a key and filter/s.
 
@@ -168,7 +184,7 @@ parser.filter_by(key, filters, key_splitter="-", retrieve=True, nested_key=False
 
 #### reset_operations
 
-`reset_operations() -> M3uParser`
+`reset_operations() -> 'M3uParser'`
 
 Resets the streams information list to the initial state before any filtering or sorting operations.
 
@@ -178,7 +194,7 @@ parser.reset_operations()
 
 #### remove_by_extension
 
-`remove_by_extension(extensions: Union[str, list[str]]) -> M3uParser`
+`remove_by_extension(extensions: Union[str, list[str]]) -> 'M3uParser'`
 
 Removes stream information with a certain extension(s).
 
@@ -190,7 +206,7 @@ parser.remove_by_extension(extensions)
 
 #### retrieve_by_extension
 
-`retrieve_by_extension(extension: Union[str, list[str]]) -> M3uParser`
+`retrieve_by_extension(extension: Union[str, list[str]]) -> 'M3uParser'`
 
 Retrieves only stream information with a certain extension(s).
 
@@ -202,7 +218,7 @@ parser.retrieve_by_extension(extensions)
 
 #### remove_by_category
 
-`remove_by_category(categories: Union[str, list[str]]) -> M3uParser`
+`remove_by_category(categories: Union[str, list[str]]) -> 'M3uParser'`
 
 Removes stream information containing certain categories.
 
@@ -214,7 +230,7 @@ parser.remove_by_category(categories)
 
 #### retrieve_by_category
 
-`retrieve_by_category(categories: Union[str, list[str]]) -> M3uParser`
+`retrieve_by_category(categories: Union[str, list[str]]) -> 'M3uParser'`
 
 Selects only stream information containing certain categories.
 
@@ -226,7 +242,13 @@ parser.retrieve_by_category(categories)
 
 #### sort_by
 
-`sort_by(key: str, key_splitter: str = "-", asc: bool = True, nested_key: bool = False) -> M3uParser`
+```python
+sort_by(key: str,
+    key_splitter: str = "-",
+    asc: bool = True,
+    nested_key: bool = False
+) -> 'M3uParser'
+```
 
 Sorts the streams information based on a key in ascending or descending order.
 
@@ -241,7 +263,7 @@ parser.sort_by(key, key_splitter="-", asc=True, nested_key=False)
 
 #### remove_duplicates
 
-`remove_duplicates(self, name: str = None, url: str = None) -> M3uParser`
+`remove_duplicates(self, name: str = None, url: str = None) -> 'M3uParser'`
 
 Removes duplicate stream entries based on the provided 'name' pattern and exact 'url' match or remove all duplicates if name and url is not provided.
   
