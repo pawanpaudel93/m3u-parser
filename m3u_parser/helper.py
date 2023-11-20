@@ -36,7 +36,7 @@ regex = re.compile(
     r'\Z',
     re.IGNORECASE,
 )
-schemes = ['http', 'https', 'ftp', 'ftps']
+
 unsafe_chars = frozenset('\t\r\n')
 
 default_useragent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
@@ -151,7 +151,7 @@ def is_valid_ipv6_address(ip_str):
     return True
 
 
-def is_valid_url(value, schemes=schemes):
+def is_valid_url(value, schemes=['http', 'https']):
     """
     Validate that the input can be represented as a URL.
     """

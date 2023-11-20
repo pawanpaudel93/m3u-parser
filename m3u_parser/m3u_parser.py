@@ -281,7 +281,7 @@ class M3uParser:
     def parse_m3u(
         self,
         data_source: str,
-        schemes=['http', 'https', 'ftp', 'ftps'],
+        schemes=['http', 'https'],
         status_checker=dict(),
         check_live=True,
         enforce_schema=True,
@@ -294,7 +294,7 @@ class M3uParser:
 
         Args:
             - `data_source` (str): The file path or URL of the M3U file to be parsed.
-            - `schemes` (list, optional): A list of allowed URL schemes. Default is `["http", "https", "ftp", "ftps"]`.
+            - `schemes` (list, optional): A list of allowed URL schemes. Default is `["http", "https"]`.
             - `status_checker` (dict, optional): A dictionary mapping URL schemes to custom status checker functions. Default is `dict()`.
             - `check_live` (bool, optional): Indicates whether to check the status of live streams (default is `True`).
             - `enforce_schema` (bool, optional): Indicates whether to enforce a specific schema for parsed data.
@@ -307,7 +307,7 @@ class M3uParser:
             - `FileNotFoundError`: Raised if the file does not exist or is not accessible.
 
         Returns:
-            - `M3UParser`: The instance of the M3UParser class.
+            - `M3uParser`: The instance of the M3uParser class.
 
         Example::
 
@@ -337,7 +337,7 @@ class M3uParser:
     def parse_json(
         self,
         data_source: str,
-        schemes=['http', 'https', 'ftp', 'ftps'],
+        schemes=['http', 'https'],
         status_checker=dict(),
         check_live=True,
         enforce_schema=True,
@@ -351,7 +351,7 @@ class M3uParser:
 
         Args:
             - `data_source` (str): The file path or URL of the JSON file containing streams information.
-            - `schemes` (list, optional): A list of allowed URL schemes. Default is `["http", "https", "ftp", "ftps"]`.
+            - `schemes` (list, optional): A list of allowed URL schemes. Default is `["http", "https"]`.
             - `status_checker` (dict, optional): A dictionary mapping URL schemes to custom status checker functions. Default is `dict()`.
             - `check_live` (bool, optional): Indicates whether to check the status of live streams (default is `True`).
             - `enforce_schema` (bool, optional): Indicates whether to enforce a specific schema for parsed data.
@@ -363,7 +363,7 @@ class M3uParser:
             - `FileNotFoundError`: Raised if the file does not exist or is not accessible.
 
         Returns:
-            - `M3UParser`: The instance of the M3UParser class.
+            - `M3uParser`: The instance of the M3uParser class.
 
         Example::
 
@@ -410,7 +410,7 @@ class M3uParser:
     def parse_csv(
         self,
         data_source: str,
-        schemes=['http', 'https', 'ftp', 'ftps'],
+        schemes=['http', 'https'],
         status_checker=dict(),
         check_live=True,
         enforce_schema=True,
@@ -424,7 +424,7 @@ class M3uParser:
 
         Args:
             - `data_source` (str): The file path or URL of the CSV file containing streams information.
-            - `schemes` (list, optional): A list of allowed URL schemes. Default is `["http", "https", "ftp", "ftps"]`.
+            - `schemes` (list, optional): A list of allowed URL schemes. Default is `["http", "https"]`.
             - `status_checker` (dict, optional): A dictionary mapping URL schemes to custom status checker functions. Default is `dict()`.
             - `check_live` (bool, optional): Indicates whether to check the status of live streams (default is `True`).
             - `enforce_schema` (bool, optional): Indicates whether to enforce a specific schema for parsed data.
@@ -436,7 +436,7 @@ class M3uParser:
             - `FileNotFoundError`: Raised if the file does not exist or is not accessible.
 
         Returns:
-            - `M3UParser`: The instance of the M3UParser class.
+            - `M3uParser`: The instance of the M3uParser class.
 
         Example::
 
@@ -505,7 +505,7 @@ class M3uParser:
             - `KeyNotFoundException`: Raised if key is missing in the streams.
 
         Returns:
-            - `M3UParser`: The instance of the M3UParser class.
+            - `M3uParser`: The instance of the M3uParser class.
         """
         key_0, key_1 = [key, ""]
         if nested_key:
@@ -564,7 +564,7 @@ class M3uParser:
         The original parsed streams information is restored for further operations.
 
         Returns:
-            - `M3UParser`: The instance of the M3UParser class.
+            - `M3uParser`: The instance of the M3uParser class.
         """
         self._streams_info = self._streams_info_backup.copy()
         return self
@@ -580,7 +580,7 @@ class M3uParser:
             - `extensions` (Union[str, list[str]]): File extension or list of file extensions to be removed from the streams information.
 
         Returns:
-            - `M3UParser`: The instance of the M3UParser class.
+            - `M3uParser`: The instance of the M3uParser class.
         """
         return self.filter_by("url", extensions, retrieve=False)
 
@@ -595,7 +595,7 @@ class M3uParser:
             - `extensions` (Union[str, list[str]]): File extension or list of file extensions to be retrieved from the streams information.
 
         Returns:
-            - `M3UParser`: The instance of the M3UParser class.
+            - `M3uParser`: The instance of the M3uParser class.
         """
         return self.filter_by("url", extensions)
 
@@ -610,7 +610,7 @@ class M3uParser:
             - `categories` (Union[str, list[str]]): Category or list of categories to be removed from the streams information.
 
         Returns:
-            - `M3UParser`: The instance of the M3UParser class.
+            - `M3uParser`: The instance of the M3uParser class.
         """
         return self.filter_by("category", categories, retrieve=False)
 
@@ -625,7 +625,7 @@ class M3uParser:
             - `categories` (Union[str, list[str]]): Category or list of categories to be retrieved from the streams information.
 
         Returns:
-            - `M3UParser`: The instance of the M3UParser class.
+            - `M3uParser`: The instance of the M3uParser class.
         """
         return self.filter_by("category", categories)
 
@@ -653,7 +653,7 @@ class M3uParser:
             - `KeyNotFoundException`: Raised if Key is not found.
 
         Returns:
-            - `M3UParser`: The instance of the M3UParser class.
+            - `M3uParser`: The instance of the M3uParser class.
         """
         key_0, key_1 = [key, ""]
         if nested_key:
@@ -687,7 +687,7 @@ class M3uParser:
             - `url` (str, optional): The exact URL to filter duplicates. Defaults to `None`.
 
         Returns:
-            - `M3UParser`: The instance of the M3UParser class.
+            - `M3uParser`: The instance of the M3uParser class.
         """
         if name is None and url is not None:
             raise ParamNotPassedException(f"Param name is not passed.")

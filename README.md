@@ -66,7 +66,7 @@ parser = M3uParser(useragent=default_useragent, timeout=5)
 #### parse_m3u
 
 `parse_m3u(data_source: str,
-    schemes=['http', 'https', 'ftp', 'ftps'],
+    schemes=['http', 'https'],
     status_checker=dict(),
     check_live=True,
     enforce_schema=True) -> M3uParser`
@@ -74,7 +74,7 @@ parser = M3uParser(useragent=default_useragent, timeout=5)
 Parses the content of a local file or URL and extracts the streams information.
 
 - `data_source`: The path to the m3u file, which can be a local file path or a URL.
-- `schemes` (list, optional): A list of allowed URL schemes. Default is `["http", "https", "ftp", "ftps"]`.
+- `schemes` (list, optional): A list of allowed URL schemes. Default is `["http", "https"]`.
 - `status_checker` (dict, optional): A dictionary mapping URL schemes to custom status checker functions. Default is `dict()`.
 - `check_live` (bool, optional): Indicates whether to check the status of live streams (default is `True`).
 - `enforce_schema` (bool, optional): Indicates whether to enforce a specific schema for parsed data.
@@ -95,7 +95,7 @@ parser.parse_m3u(path, schemes=['http', 'https', 'ftp'], status_checker={"ftp": 
 #### parse_json
 
 `parse_json(data_source: str,
-    schemes=['http', 'https', 'ftp', 'ftps'],
+    schemes=['http', 'https'],
     status_checker=dict(),
     check_live=True,
     enforce_schema=True) -> M3uParser`
@@ -103,7 +103,7 @@ parser.parse_m3u(path, schemes=['http', 'https', 'ftp'], status_checker={"ftp": 
 Parses the content of a local file or URL and extracts the streams information.
 
 - `data_source`: The path to the json file, which can be a local file path or a URL.
-- `schemes` (list, optional): A list of allowed URL schemes. Default is `["http", "https", "ftp", "ftps"]`.
+- `schemes` (list, optional): A list of allowed URL schemes. Default is `["http", "https"]`.
 - `status_checker` (dict, optional): A dictionary mapping URL schemes to custom status checker functions. Default is `dict()`.
 - `check_live` (bool, optional): Indicates whether to check the status of live streams (default is `True`).
 - `enforce_schema` (bool, optional): Indicates whether to enforce a specific schema for parsed data.
@@ -124,7 +124,7 @@ parser.parse_json(path, schemes=['http', 'https', 'ftp'], status_checker={"ftp":
 #### parse_csv
 
 `parse_csv(data_source: str,
-    schemes=['http', 'https', 'ftp', 'ftps'],
+    schemes=['http', 'https'],
     status_checker=dict(),
     check_live=True,
     enforce_schema=True) -> M3uParser`
@@ -132,7 +132,7 @@ parser.parse_json(path, schemes=['http', 'https', 'ftp'], status_checker={"ftp":
 Parses the content of a local file or URL and extracts the streams information.
 
 - `data_source`: The path to the csv file, which can be a local file path or a URL.
-- `schemes` (list, optional): A list of allowed URL schemes. Default is `["http", "https", "ftp", "ftps"]`.
+- `schemes` (list, optional): A list of allowed URL schemes. Default is `["http", "https"]`.
 - `status_checker` (dict, optional): A dictionary mapping URL schemes to custom status checker functions. Default is `dict()`.
 - `check_live` (bool, optional): Indicates whether to check the status of live streams (default is `True`).
 - `enforce_schema` (bool, optional): Indicates whether to enforce a specific schema for parsed data.
