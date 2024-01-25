@@ -78,6 +78,7 @@ class M3uParser:
         self._tvg_name_regex = re.compile(r"tvg-name=\"(.*?)\"", flags=re.IGNORECASE)
         self._tvg_id_regex = re.compile(r"tvg-id=\"(.*?)\"", flags=re.IGNORECASE)
         self._logo_regex = re.compile(r"tvg-logo=\"(.*?)\"", flags=re.IGNORECASE)
+        self._chno_regex = re.compile(r"tvg-chno=\"(.*?)\"", flags=re.IGNORECASE)
         self._category_regex = re.compile(r"group-title=\"(.*?)\"", flags=re.IGNORECASE)
         self._title_regex = re.compile(r"(?!.*=\",?.*\")[,](.*?)$", flags=re.IGNORECASE)
         self._country_regex = re.compile(r"tvg-country=\"(.*?)\"", flags=re.IGNORECASE)
@@ -214,9 +215,10 @@ class M3uParser:
             tvg_id = get_by_regex(self._tvg_id_regex, line_info)
             tvg_name = get_by_regex(self._tvg_name_regex, line_info)
             tvg_url = get_by_regex(self._tvg_url_regex, line_info)
-            if tvg_id != None or tvg_name != None or tvg_url != None or self._enforce_schema:
+            tvg_chno = get_by_regex(self._chno_regex, line_info)
+            if tvg_id != None or tvg_name != None or tvg_url != None or tvg_chno != None or self._enforce_schema:
                 info["tvg"] = {}
-                for key, val in zip(["id", "name", "url"], [tvg_id, tvg_name, tvg_url]):
+                for key, val in zip(["id", "name", "url", "chno"], [tvg_id, tvg_name, tvg_url, tvg_chno]):
                     if val != None or self._enforce_schema:
                         info["tvg"][key] = val
             # Country
