@@ -78,6 +78,7 @@ class M3uParser:
         self._tvg_name_regex = re.compile(r"tvg-name=\"(.*?)\"", flags=re.IGNORECASE)
         self._tvg_id_regex = re.compile(r"tvg-id=\"(.*?)\"", flags=re.IGNORECASE)
         self._logo_regex = re.compile(r"tvg-logo=\"(.*?)\"", flags=re.IGNORECASE)
+        self._chno_regex = re.compile(r"tvg-chno=\"(.*?)\"", flags=re.IGNORECASE)
         self._category_regex = re.compile(r"group-title=\"(.*?)\"", flags=re.IGNORECASE)
         self._title_regex = re.compile(r"(?!.*=\",?.*\")[,](.*?)$", flags=re.IGNORECASE)
         self._country_regex = re.compile(r"tvg-country=\"(.*?)\"", flags=re.IGNORECASE)
@@ -214,9 +215,10 @@ class M3uParser:
             tvg_id = get_by_regex(self._tvg_id_regex, line_info)
             tvg_name = get_by_regex(self._tvg_name_regex, line_info)
             tvg_url = get_by_regex(self._tvg_url_regex, line_info)
-            if tvg_id != None or tvg_name != None or tvg_url != None or self._enforce_schema:
+            tvg_chno = get_by_regex(self._chno_regex, line_info)
+            if tvg_id != None or tvg_name != None or tvg_url != None or tvg_chno != None or self._enforce_schema:
                 info["tvg"] = {}
-                for key, val in zip(["id", "name", "url"], [tvg_id, tvg_name, tvg_url]):
+                for key, val in zip(["id", "name", "url", "chno"], [tvg_id, tvg_name, tvg_url, tvg_chno]):
                     if val != None or self._enforce_schema:
                         info["tvg"][key] = val
             # Country
@@ -392,12 +394,19 @@ class M3uParser:
                     "url": stream_info.get("url"),
                     "category": stream_info.get("category"),
                     "tvg": {
-                        "id": stream_info.get("tvg_id"),
-                        "name": stream_info.get("tvg_name"),
-                        "url": stream_info.get("tvg_url"),
+                        "id": stream_info.get("tvg", {}).get("id"),
+                        "name": stream_info.get("tvg", {}).get("name"),
+                        "url": stream_info.get("tvg", {}).get("url"),
+                        "chno": stream_info.get("tvg", {}).get("chno"),
                     },
-                    "country": {"code": stream_info.get("country_code"), "name": stream_info.get("country_name")},
-                    "language": {"code": stream_info.get("language_code"), "name": stream_info.get("language_name")},
+                    "country": {
+                        "code": stream_info.get("country", {}).get("code"),
+                        "name": stream_info.get("country", {}).get("name"),
+                    },
+                    "language": {
+                        "code": stream_info.get("language", {}).get("code"),
+                        "name": stream_info.get("language", {}).get("name"),
+                    },
                     "status": stream_info.get("status") or "BAD",
                     "live": stream_info.get("status") == "GOOD",
                 }
@@ -467,6 +476,7 @@ class M3uParser:
                     "id": get_value(row, "tvg_id"),
                     "name": get_value(row, "tvg_name"),
                     "url": get_value(row, "tvg_url"),
+                    "chno": get_value(row, "tvg_chno"),
                 },
                 "country": {"code": get_value(row, "country_code"), "name": get_value(row, "country_name")},
                 "language": {"code": get_value(row, "language_code"), "name": get_value(row, "language_name")},
