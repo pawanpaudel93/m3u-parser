@@ -15,9 +15,9 @@ from m3u_parser.exceptions import KeyNotFoundException, NoStreamsException, Para
 # Sample M3U content for testing
 SAMPLE_M3U_CONTENT = """
 #EXTM3U
-#EXTINF:-1 tvg-id="Channel 1" tvg-logo="https://i.imgur.com/AvCQYgu.png" tvg-country="NP" tvg-language="Newari" group-title="News",Channel 1
+#EXTINF:-1 tvg-id="Channel 1" tvg-chno="1" tvg-logo="https://i.imgur.com/AvCQYgu.png" tvg-country="NP" tvg-language="Newari" group-title="News",Channel 1
 http://example.com/stream1
-#EXTINF:-1 tvg-id="Channel 2" tvg-logo="https://i.imgur.com/AvCQYgu.png" tvg-country="IN" tvg-language="Hindi" group-title="News",Channel 2
+#EXTINF:-1 tvg-id="Channel 2" tvg-chno="2" tvg-logo="https://i.imgur.com/AvCQYgu.png" tvg-country="IN" tvg-language="Hindi" group-title="News",Channel 2
 http://example.com/stream2
 #EXTINF:-1 tvg-id="Channel 3" tvg-logo="https://i.imgur.com/AvCQYgu.png" tvg-country="CN" tvg-language="Chinesee" group-title="News",Channel 3
 http://example.com/stream3
@@ -43,7 +43,7 @@ SAMPLE_JSON_CONTENT = json.dumps(
             "logo": "https://i.imgur.com/AvCQYgu.png",
             "url": "http://example.com/stream1",
             "category": "News",
-            "tvg": {"id": "Channel 1", "name": None, "url": None},
+            "tvg": {"id": "Channel 1", "name": None, "url": None, "chno": "1"},
             "country": {"code": "NP", "name": "Nepal"},
             "language": {"code": "new", "name": "Newari"},
         },
@@ -68,10 +68,10 @@ SAMPLE_JSON_CONTENT = json.dumps(
     ]
 )
 
-SAMPLE_CSV_CONTENT = """name,logo,url,category,tvg_id,tvg_name,tvg_url,country_code,country_name,language_code,language_name
-Channel 1,https://i.imgur.com/AvCQYgu.png,http://example.com/stream1,News,Channel 1,,,NP,Nepal,new,Newari
-Channel 2,https://i.imgur.com/AvCQYgu.png,http://example.com/stream2,News,Channel 2,,,IN,India,hin,Hindi
-Channel 3,https://i.imgur.com/AvCQYgu.png,http://example.com/stream3,News,Channel 3,,,CN,China,,Chinesee
+SAMPLE_CSV_CONTENT = """name,logo,url,category,tvg_id,tvg_name,tvg_url,tvg_chno,country_code,country_name,language_code,language_name
+Channel 1,https://i.imgur.com/AvCQYgu.png,http://example.com/stream1,News,Channel 1,,,1,NP,Nepal,new,Newari
+Channel 2,https://i.imgur.com/AvCQYgu.png,http://example.com/stream2,News,Channel 2,,,2,IN,India,hin,Hindi
+Channel 3,https://i.imgur.com/AvCQYgu.png,http://example.com/stream3,News,Channel 3,,,3,CN,China,,Chinesee
 """
 
 

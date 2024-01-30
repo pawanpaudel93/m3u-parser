@@ -394,13 +394,19 @@ class M3uParser:
                     "url": stream_info.get("url"),
                     "category": stream_info.get("category"),
                     "tvg": {
-                        "id": stream_info.get("tvg_id"),
-                        "name": stream_info.get("tvg_name"),
-                        "url": stream_info.get("tvg_url"),
-                        "chno": stream_info.get("tvg_chno"),
+                        "id": stream_info.get("tvg", {}).get("id"),
+                        "name": stream_info.get("tvg", {}).get("name"),
+                        "url": stream_info.get("tvg", {}).get("url"),
+                        "chno": stream_info.get("tvg", {}).get("chno"),
                     },
-                    "country": {"code": stream_info.get("country_code"), "name": stream_info.get("country_name")},
-                    "language": {"code": stream_info.get("language_code"), "name": stream_info.get("language_name")},
+                    "country": {
+                        "code": stream_info.get("country", {}).get("code"),
+                        "name": stream_info.get("country", {}).get("name"),
+                    },
+                    "language": {
+                        "code": stream_info.get("language", {}).get("code"),
+                        "name": stream_info.get("language", {}).get("name"),
+                    },
                     "status": stream_info.get("status") or "BAD",
                     "live": stream_info.get("status") == "GOOD",
                 }
