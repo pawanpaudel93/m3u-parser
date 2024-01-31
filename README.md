@@ -1,6 +1,6 @@
 # m3u_parser
 
-![version](https://img.shields.io/badge/version-0.4.1-blue.svg?cacheSeconds=2592000)
+![version](https://img.shields.io/badge/version-0.4.1-blue.svg?cacheSeconds=2592000) [![Downloads](https://static.pepy.tech/badge/m3u-parser/month)](https://pepy.tech/project/m3u-parser)
 
 A Python package for parsing m3u files and extracting streams information. The package allows you to convert the parsed information into JSON or CSV format and provides various filtering and sorting options.
 
