@@ -10,6 +10,7 @@ black = "*"
 isort = "*"
 pytest = "*"
 python-semantic-release = "*"
+tox = "*"
 
 [packages]
 pycountry = "*"
@@ -17,7 +18,7 @@ aiohttp = "*"
 asyncio = "*"
 
 [requires]
-python_version = "3.7"
+python_version = ">=3.7"
 
 [pipenv]
 allow_prereleases = true

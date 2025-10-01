@@ -1,7 +1,9 @@
 venv
 .vscode
 .idea
-__pycache__/*
+.tox
+.pytest_cache
+__pycache__
 
 # Compiled python modules.
 *.pyc

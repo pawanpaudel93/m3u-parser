@@ -11,7 +11,7 @@ DESCRIPTION = "A useful package for parsing m3u files or links"
 URL = "https://github.com/pawanpaudel93/m3u_parser"
 EMAIL = "pawanpaudel93@gmail.com"
 AUTHOR = "Pawan Paudel"
-REQUIRES_PYTHON = ">=3.0"
+REQUIRES_PYTHON = ">=3.7"
 VERSION = "0.4.1"
 
 REQUIRED = ["requests", "asyncio", "aiohttp", "pycountry"]
@@ -100,9 +100,13 @@ setup(
         "License :: OSI Approved :: ISC License (ISCL)",
         "Development Status :: 3 - Alpha",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Operating System :: OS Independent",
     ],
     # $ setup.py publish support.
