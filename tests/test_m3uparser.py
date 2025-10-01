@@ -75,6 +75,18 @@ Channel 3,https://i.imgur.com/AvCQYgu.png,http://example.com/stream3,News,Channe
 """
 
 
+MIXED_SCHEMES_M3U_CONTENT = """#EXTM3U
+#EXTINF:-1,A1 TV Rajasthan (576p)
+https://yuppftalive.akamaized.net/080823/a1tv/playlist.m3u8
+#EXTINF:235,Henrik José - They Killed the Kid
+file:///Users/user/Music/Bliss%20-%20They%20Killed%20the%20Kid.mp3
+#EXTINF:447,Ultrasyd - Campylobacter's Groove
+file:///Users/user/Music/Ultrasyd%20-%20Campylobacter%27s%20Groove.mp3
+#EXTINF:-1 tvg-id="Channel 1" tvg-logo="https://i.imgur.com/AvCQYgu.png" group-title="News",Channel 1
+http://example.com/stream1
+"""
+
+
 async def rtsp_checker(url: str):
     return True
 
@@ -112,6 +124,15 @@ def temp_csv_file(tmpdir):
     with open(csv_file, "w") as f:
         f.write((SAMPLE_CSV_CONTENT))
     return str(csv_file)
+
+
+# Fixture to create a temporary M3U file with mixed schemes for testing
+@pytest.fixture
+def temp_mixed_schemes_m3u(tmpdir):
+    m3u_file = tmpdir.join("test_mixed_schemes.m3u")
+    with open(m3u_file, "w") as f:
+        f.write(MIXED_SCHEMES_M3U_CONTENT)
+    return str(m3u_file)
 
 
 # Test M3uParser class
@@ -293,3 +314,25 @@ class TestM3uParser:
         parser.parse_m3u(temp_duplicate_m3u_file, check_live=False)
         with pytest.raises(ParamNotPassedException):
             parser.remove_duplicates(url="http://example.com/stream1")
+
+    # Test parsing M3U with mixed http/https and file:// URIs
+    def test_parse_m3u_with_mixed_schemes(self, temp_mixed_schemes_m3u):
+        parser = M3uParser()
+        parser.parse_m3u(temp_mixed_schemes_m3u, check_live=False, schemes=["http", "https"])
+        streams = parser.get_list()
+        assert len(streams) == 4
+        # Check that all schemes are parsed correctly
+        urls = [stream['url'] for stream in streams]
+        assert any(url.startswith('https://') for url in urls)
+        assert any(url.startswith('http://') for url in urls)
+        assert any(url.startswith('file:///') for url in urls)
+
+    # Test mixed schemes with filtering
+    def test_filter_mixed_schemes(self, temp_mixed_schemes_m3u):
+        parser = M3uParser()
+        parser.parse_m3u(temp_mixed_schemes_m3u, check_live=False, schemes=["http", "https"])
+        # Filter to only get file:// URIs
+        parser.filter_by('url', r'^file:///', retrieve=True)
+        streams = parser.get_list()
+        assert len(streams) == 2
+        assert all(stream['url'].startswith('file:///') for stream in streams)

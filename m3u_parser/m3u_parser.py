@@ -74,7 +74,9 @@ class M3uParser:
         self._enforce_schema = True
         self._headers = {"User-Agent": useragent if useragent else default_useragent}
         self._check_live = False
-        self._file_regex = re.compile(r"^[a-zA-Z]:\\((?:.*?\\)*).*\.[\d\w]{3,5}$|^(/[^/]*)+/?.[\d\w]{3,5}$")
+        self._file_regex = re.compile(
+            r"^[a-zA-Z]:\\((?:.*?\\)*).*\.[\d\w]{3,5}$|^(?:file://)?(/[^/]+)+/?.[\d\w]{3,5}$"
+        )
         self._tvg_name_regex = re.compile(r"tvg-name=\"(.*?)\"", flags=re.IGNORECASE)
         self._tvg_id_regex = re.compile(r"tvg-id=\"(.*?)\"", flags=re.IGNORECASE)
         self._logo_regex = re.compile(r"tvg-logo=\"(.*?)\"", flags=re.IGNORECASE)
@@ -120,7 +122,7 @@ class M3uParser:
 
     def _set_event_loop(self):
         try:
-            self._loop = asyncio.get_event_loop()
+            self._loop = asyncio.get_running_loop()
         except RuntimeError:
             self._loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self._loop)
@@ -680,9 +682,11 @@ class M3uParser:
 
         self._streams_info = sorted(
             self._streams_info,
-            key=lambda stream_info: (stream_info[key_0][key_1] is not None, stream_info[key_0][key_1])
-            if nested_key
-            else (stream_info[key] is not None, stream_info[key]),
+            key=lambda stream_info: (
+                (stream_info[key_0][key_1] is not None, stream_info[key_0][key_1])
+                if nested_key
+                else (stream_info[key] is not None, stream_info[key])
+            ),
             reverse=not asc,
         )
         return self

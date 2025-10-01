@@ -1,7 +1,7 @@
 [tool.black]
 line-length = 119
 skip-string-normalization = true
-target-version = ['py37']
+target-version = ['py37', 'py38', 'py39', 'py310', 'py311', 'py312', 'py313']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -10,6 +10,7 @@ exclude = '''
   | \.tox
   | \.venv
   | dist
+  | venv
 )/
 '''
 
@@ -18,3 +19,10 @@ line_length = 119
 multi_line_output = 3
 use_parentheses = true
 include_trailing_comma = true
+
+[tool.semantic_release]
+version_variable = "setup.py:VERSION"
+upload_to_pypi = true
+upload_to_release = true
+hvcs = "github"
+branch = "main"

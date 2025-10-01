@@ -1,0 +1,17 @@
+[tools]
+python = "3.12"
+
+[env]
+_.python.venv = { path = "venv", create = true }
+
+[tasks.install]
+run = "pipenv install --dev"
+
+[tasks.test]
+run = "pytest"
+
+[tasks.format]
+run = "black . && isort ."
+
+[tasks.lint]
+run = "pylint m3u_parser"
