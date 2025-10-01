@@ -75,7 +75,7 @@ class M3uParser:
         self._headers = {"User-Agent": useragent if useragent else default_useragent}
         self._check_live = False
         self._file_regex = re.compile(
-            r"^[a-zA-Z]:\\((?:.*?\\)*).*\.[\d\w]{3,5}$|^(?:file://)?(/[^/]+)+/?.[\d\w]{3,5}$"
+            r"^(?:file://)?[a-zA-Z]:\\((?:.*?\\)*).*\.[\d\w]{3,5}$|^(?:file://)?(/[^/]+)+/?.[\d\w]{3,5}$"
         )
         self._tvg_name_regex = re.compile(r"tvg-name=\"(.*?)\"", flags=re.IGNORECASE)
         self._tvg_id_regex = re.compile(r"tvg-id=\"(.*?)\"", flags=re.IGNORECASE)

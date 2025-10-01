@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v0.4.2 (2025-10-01)
+
+### Fix
+
+* fix: Resolve issue with file:// URIs ([`3f73cea`](https://github.com/pawanpaudel93/m3u-parser/commit/3f73cea45584ff7d9f32bb15307f95a7dafa271a))
+
 ## v0.4.1 (2024-01-30)
 
 ### Fix
