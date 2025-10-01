@@ -12,7 +12,7 @@ URL = "https://github.com/pawanpaudel93/m3u_parser"
 EMAIL = "pawanpaudel93@gmail.com"
 AUTHOR = "Pawan Paudel"
 REQUIRES_PYTHON = ">=3.7"
-VERSION = "0.4.1"
+VERSION = "0.4.2"
 
 REQUIRED = ["requests", "asyncio", "aiohttp", "pycountry"]
 
