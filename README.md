@@ -316,6 +316,7 @@ parser.to_file(filename, format="json")
 - `Golang`: [go-m3u-parser](https://github.com/pawanpaudel93/go-m3u-parser)
 - `Rust`: [rs-m3u-parser](https://github.com/pawanpaudel93/rs-m3u-parser)
 - `Typescript`: [ts-m3u-parser](https://github.com/pawanpaudel93/ts-m3u-parser)
+- `Lua`: [lua-m3u-parser](https://github.com/pawanpaudel93/lua-m3u-parser)
 
 ## Author
 
