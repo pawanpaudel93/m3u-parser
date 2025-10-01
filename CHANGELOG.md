@@ -1,7 +1,5 @@
 # CHANGELOG
 
-
-
 ## v0.4.1 (2024-01-30)
 
 ### Fix
@@ -23,7 +21,6 @@ Add support for channel number (tvg_chno) ([`57b9957`](https://github.com/pawanp
 * Update m3u_parser.py
 
 add support for channel number tvg_chno that is use in tvheadend ([`8b1d130`](https://github.com/pawanpaudel93/m3u-parser/commit/8b1d1300cf2b0f9d5b3112901a18954b5049a65d))
-
 
 ## v0.4.0 (2023-11-20)
 
@@ -108,7 +105,6 @@ feat: Add schemes support with status checker &amp; support removing duplicates 
 * v0.1.9 ([`b03d24e`](https://github.com/pawanpaudel93/m3u-parser/commit/b03d24ef2d078f730ddee68729bd86e8c12b6eb2))
 
 * Fix file reading error caused by unquote #15 ([`f2b844b`](https://github.com/pawanpaudel93/m3u-parser/commit/f2b844bb48e569291899380a154dde9a26c6c669))
-
 
 ## v0.1.8 (2021-12-29)
 
