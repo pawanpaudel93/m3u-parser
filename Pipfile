@@ -12,6 +12,7 @@ pytest = "*"
 python-semantic-release = "*"
 tox = "*"
 setuptools = "*"
+build = "*"
 
 [packages]
 pycountry = "*"
