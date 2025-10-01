@@ -318,7 +318,7 @@ class TestM3uParser:
     # Test parsing M3U with mixed http/https and file:// URIs
     def test_parse_m3u_with_mixed_schemes(self, temp_mixed_schemes_m3u):
         parser = M3uParser()
-        parser.parse_m3u(temp_mixed_schemes_m3u, check_live=False, schemes=["http", "https", "file"])
+        parser.parse_m3u(temp_mixed_schemes_m3u, check_live=False, schemes=["http", "https"])
         streams = parser.get_list()
         assert len(streams) == 4
         # Check that all schemes are parsed correctly
@@ -330,7 +330,7 @@ class TestM3uParser:
     # Test mixed schemes with filtering
     def test_filter_mixed_schemes(self, temp_mixed_schemes_m3u):
         parser = M3uParser()
-        parser.parse_m3u(temp_mixed_schemes_m3u, check_live=False, schemes=["http", "https", "file"])
+        parser.parse_m3u(temp_mixed_schemes_m3u, check_live=False, schemes=["http", "https"])
         # Filter to only get file:// URIs
         parser.filter_by('url', r'^file:///', retrieve=True)
         streams = parser.get_list()
