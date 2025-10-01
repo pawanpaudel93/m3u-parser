@@ -5,7 +5,7 @@ python = "3.12"
 _.python.venv = { path = "venv", create = true }
 
 [tasks.install]
-run = "pip install -e '.[dev]'"
+run = "pipenv install --dev"
 
 [tasks.test]
 run = "pytest"
