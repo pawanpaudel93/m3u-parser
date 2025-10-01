@@ -11,6 +11,7 @@ isort = "*"
 pytest = "*"
 python-semantic-release = "*"
 tox = "*"
+setuptools = "*"
 
 [packages]
 pycountry = "*"
